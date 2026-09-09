@@ -1,0 +1,23 @@
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+python-multipart==0.0.9
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-dotenv==1.0.1
+
+# Image processing
+opencv-python-headless==4.10.0.84
+Pillow==10.4.0
+numpy==1.26.4
+
+# Gemini (primary VLM)
+google-generativeai==0.8.3
+
+# Local VLM fallback (Qwen2-VL / Moondream2) — uncomment when you reach that step
+# torch==2.4.1
+# transformers==4.45.2
+# accelerate==0.34.2
+# bitsandbytes==0.44.1
+
+# Stretch goal: YOLOv8 object detection
+# ultralytics==8.3.0

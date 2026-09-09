@@ -1,0 +1,31 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+.env
+.pytest_cache/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Uploads / generated
+backend/tmp_uploads/
+backend/static/diffs/
+tmp_uploads/
+
+# OS / editor / agent scratch
+.DS_Store
+.vscode/
+*.log
+.agents/
+.claude/
+.codex/
+.opencode/
+satquery-ai-starter.zip
+
+# Model weights (large — don't commit)
+*.safetensors
+*.bin
+*.pt
