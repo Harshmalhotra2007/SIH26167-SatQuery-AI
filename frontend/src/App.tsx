@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react'
 import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 import ImageUpload from './components/ImageUpload'
 import ChatPanel from './components/ChatPanel'
 import ChangeDetection from './components/ChangeDetection'
@@ -62,6 +63,7 @@ export default function App() {
         </section>
       </main>
       <Analytics />
+      <SpeedInsights />
     </div>
   )
 }
