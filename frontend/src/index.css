@@ -1,3 +1,206 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-space-700;
+  }
+
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply bg-space-950 text-earth-50 font-ui antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-space-900;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-space-700 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-space-600;
+  }
+  ::-webkit-scrollbar-corner {
+    @apply bg-space-900;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-vegetation-400 ring-offset-2 ring-offset-space-950;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  .panel {
+    @apply bg-space-800/80 backdrop-blur-sm rounded-panel border border-space-700 shadow-panel;
+  }
+
+  .panel-elevated {
+    @apply bg-space-800/95 backdrop-blur-md rounded-panel border border-space-700/50 shadow-elevated;
+  }
+
+  .image-viewer {
+    @apply relative bg-space-900 rounded-card overflow-hidden border border-space-700;
+    background-image: theme('backgroundImage.grid-pattern');
+    background-size: 48px 48px;
+  }
+
+  .image-viewer::before {
+    content: '';
+    @apply absolute inset-0 bg-radial-glow pointer-events-none;
+  }
+
+  .drop-zone {
+    @apply relative border-2 border-dashed rounded-card p-8 text-center transition-all duration-200;
+    @apply border-space-700/80 bg-space-900/50 hover:border-space-600 hover:bg-space-900/80;
+  }
+
+  .drop-zone.active {
+    @apply border-vegetation-400 bg-vegetation-400/10;
+  }
+
+  .drop-zone.drag-over {
+    @apply border-vegetation-400 bg-vegetation-400/20 scale-[0.99];
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
+           bg-vegetation-400 text-space-950 hover:bg-vegetation-500 active:bg-vegetation-600
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vegetation-400 focus-visible:ring-offset-2 focus-visible:ring-offset-space-950;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
+           bg-space-700 text-earth-50 hover:bg-space-600 active:bg-space-500
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-earth-400 focus-visible:ring-offset-2 focus-visible:ring-offset-space-950;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium text-sm
+           bg-transparent text-earth-300 hover:bg-space-700 hover:text-earth-50 active:bg-space-600
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-earth-400 focus-visible:ring-offset-2 focus-visible:ring-offset-space-950;
+  }
+
+  .btn-thermal {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
+           bg-thermal-400 text-space-950 hover:bg-thermal-500 active:bg-thermal-600
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-thermal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-space-950;
+  }
+
+  .tab-btn {
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vegetation-400 focus-visible:ring-offset-2 focus-visible:ring-offset-space-950;
+  }
+
+  .tab-btn-active {
+    @apply bg-vegetation-400 text-space-950 shadow-lg shadow-vegetation-400/20;
+  }
+
+  .tab-btn-inactive {
+    @apply bg-space-800 text-earth-300 hover:bg-space-700 hover:text-earth-50;
+  }
+
+  .action-chip {
+    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
+           bg-space-800/80 text-earth-300 hover:bg-space-700 hover:text-earth-50
+           border border-space-700/50 transition-all duration-150
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-lg bg-space-900 border border-space-700
+           text-earth-50 placeholder-earth-400/50
+           focus:outline-none focus:border-vegetation-400 focus:ring-2 focus:ring-vegetation-400/20
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition-all duration-150;
+  }
+
+  .meta-badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-medium
+           bg-space-700/50 text-earth-400 border border-space-700/50;
+  }
+
+  .meta-badge-primary {
+    @apply bg-vegetation-400/15 text-vegetation-400 border-vegetation-400/30;
+  }
+
+  .meta-badge-thermal {
+    @apply bg-thermal-400/15 text-thermal-400 border-thermal-400/30;
+  }
+
+  .msg-user {
+    @apply text-earth-100;
+  }
+
+  .msg-assistant {
+    @apply text-earth-200;
+  }
+
+  .msg-meta {
+    @apply text-caption text-earth-400/80 font-mono;
+  }
+
+  .legend-item {
+    @apply flex items-center gap-2 text-body-sm text-earth-300;
+  }
+
+  .legend-swatch {
+    @apply w-3 h-3 rounded border border-space-600;
+  }
+
+  .spinner {
+    @apply animate-spin text-vegetation-400;
+  }
+
+  .skeleton {
+    @apply bg-space-700/50 animate-pulse rounded;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.4s ease-out forwards;
+  }
+
+  .stagger-1 { animation-delay: 0.05s; }
+  .stagger-2 { animation-delay: 0.1s; }
+  .stagger-3 { animation-delay: 0.15s; }
+  .stagger-4 { animation-delay: 0.2s; }
+}

@@ -1,23 +1,35 @@
 import { useRef, useState } from 'react'
 
 type Props = {
-  onUploaded: (id: string, url: string) => void
-  currentId: string | null
+  onUploaded: (id: string, url: string, meta: { width: number; height: number; filename: string }) => void
+  currentMeta: { width: number; height: number; filename: string } | null
 }
 
-export default function ImageUpload({ onUploaded, currentId }: Props) {
+export default function ImageUpload({ onUploaded, currentMeta }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const dropZoneRef = useRef<HTMLDivElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [filename, setFilename] = useState<string | null>(null)
+  const [progress, setProgress] = useState(0)
 
   const onFile = async (file: File) => {
     setUploading(true)
     setFilename(file.name)
+    setProgress(0)
     try {
       const fd = new FormData()
       fd.append('file', file)
+
+      // Simulate progress for better UX
+      const progressInterval = setInterval(() => {
+        setProgress(p => Math.min(p + Math.random() * 15, 90))
+      }, 200)
+
       const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      clearInterval(progressInterval)
+      setProgress(100)
+
       if (!res.ok) {
         let msg = 'upload failed'
         try {
@@ -29,9 +41,18 @@ export default function ImageUpload({ onUploaded, currentId }: Props) {
       }
       const data = await res.json()
       const imageUrl = data.image_url || `/static/${data.image_id}.jpg`
-      onUploaded(data.image_id, imageUrl)
+      onUploaded(data.image_id, imageUrl, {
+        width: data.width,
+        height: data.height,
+        filename: file.name
+      })
+    } catch (e) {
+      console.error(e)
+      alert('Upload failed. Please check your connection and try again.')
     } finally {
       setUploading(false)
+      setProgress(0)
+      setTimeout(() => setFilename(null), 1000)
     }
   }
 
@@ -39,18 +60,24 @@ export default function ImageUpload({ onUploaded, currentId }: Props) {
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(true)
+    dropZoneRef.current?.classList.add('drag-over')
   }
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    setIsDragging(false)
+    // Only clear if leaving the actual drop zone, not a child
+    if (!dropZoneRef.current?.contains(e.relatedTarget as Node)) {
+      setIsDragging(false)
+      dropZoneRef.current?.classList.remove('drag-over')
+    }
   }
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(false)
+    dropZoneRef.current?.classList.remove('drag-over')
     const file = e.dataTransfer.files?.[0]
     if (file && file.type.startsWith('image/')) {
       await onFile(file)
@@ -64,27 +91,55 @@ export default function ImageUpload({ onUploaded, currentId }: Props) {
     if (inputRef.current) inputRef.current.value = ''
   }
 
+  const handleClick = () => inputRef.current?.click()
+
   return (
-    <div className="rounded-lg border border-slate-800 bg-slate-900 p-4 shadow-sm">
-      <div className="text-sm font-medium text-slate-200 mb-3 flex items-center justify-between">
-        <span>Upload Satellite Image</span>
-        {currentId && (
-          <span className="text-xs text-indigo-400 font-normal bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/40">
-            ID: {currentId}
+    <div className="panel space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h2 className="font-display text-display-sm font-semibold text-earth-50">Upload Satellite Image</h2>
+          {currentMeta && (
+            <span className="meta-badge meta-badge-primary">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              {currentMeta.filename}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 text-caption text-earth-400 font-mono">
+          <span className="flex items-center gap-1">
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <path d="M16 13H8" />
+              <path d="M16 17H8" />
+              <path d="M10 9H8" />
+            </svg>
+            {currentMeta ? `${currentMeta.width}×${currentMeta.height}` : '—'}
           </span>
-        )}
+          <span className="flex items-center gap-1">
+            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <path d="M22 10l-5-5" />
+            </svg>
+            {currentMeta ? `${(currentMeta.width * currentMeta.height / 1e6).toFixed(1)} MP` : '—'}
+          </span>
+        </div>
       </div>
 
       <div
+        ref={dropZoneRef}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        onClick={() => inputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all duration-200 ${
-          isDragging
-            ? 'border-indigo-500 bg-indigo-950/40 text-indigo-200 scale-[0.99]'
-            : 'border-slate-700/80 bg-slate-950/50 hover:border-slate-600 hover:bg-slate-950/80 text-slate-400'
-        }`}
+        onClick={handleClick}
+        className={`drop-zone ${isDragging ? 'drag-over' : ''} ${filename ? 'active' : ''}`}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); }}}
+        aria-label="Upload satellite image drop zone"
       >
         <input
           ref={inputRef}
@@ -92,33 +147,86 @@ export default function ImageUpload({ onUploaded, currentId }: Props) {
           accept="image/*"
           className="hidden"
           onChange={onChange}
+          aria-label="Choose satellite image file"
         />
 
-        <div className="flex flex-col items-center justify-center space-y-2">
-          <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300">
+        <div className="flex flex-col items-center justify-center space-y-4 min-h-[200px]">
+          <div className="relative">
             {uploading ? (
-              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.48-8.48l2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83" />
+              <>
+                <svg className="w-16 h-16 mx-auto spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+                  <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-20 h-20 rounded-full border-4 border-vegetation-400/20 border-t-vegetation-400 animate-spin" />
+                </div>
+              </>
+            ) : isDragging ? (
+              <svg className="w-16 h-16 mx-auto text-vegetation-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <path d="M22 10l-5-5" />
               </svg>
             ) : (
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+              <svg className="w-16 h-16 mx-auto text-space-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15 15 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15 15 0 0 1 4-10z" />
+                <path d="M2 12h20" />
               </svg>
+            )}
+
+            {uploading && filename && (
+              <div className="mt-4 w-48 h-2 bg-space-700 rounded-full overflow-hidden">
+                <div className="h-full bg-vegetation-400 rounded-full transition-all duration-300" style={{ width: `${progress}%` }} />
+              </div>
             )}
           </div>
 
-          <div className="text-sm">
+          <div className="text-center space-y-1 px-4">
             {uploading ? (
-              <span className="text-indigo-400">Uploading {filename}...</span>
+              <>
+                <p className="text-body text-vegetation-400 font-medium">Uploading {filename}...</p>
+                <p className="text-caption text-earth-400/70">{Math.round(progress)}%</p>
+              </>
             ) : isDragging ? (
-              <span className="text-indigo-400 font-medium">Drop the image here</span>
+              <p className="text-body text-vegetation-400 font-medium">Drop the image here</p>
+            ) : filename ? (
+              <>
+                <p className="text-body text-earth-300 font-medium">{filename}</p>
+                <p className="text-caption text-earth-400/60">Ready to analyze</p>
+              </>
             ) : (
-              <span>
-                <strong className="text-indigo-400 hover:underline">Click to upload</strong> or drag & drop image
-              </span>
+              <>
+                <p className="text-body text-earth-300">
+                  <strong className="text-vegetation-400 hover:underline cursor-pointer">Click to upload</strong> or drag & drop
+                </p>
+                <p className="text-caption text-earth-400/60">PNG, JPG, TIFF — Sentinel-2 L2A scenes</p>
+              </>
             )}
           </div>
-          <p className="text-xs text-slate-500">PNG, JPG, WEBP satellite optical scenes</p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 text-caption text-earth-400/50">
+            <span className="flex items-center gap-1">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              Sentinel-2 L2A
+            </span>
+            <span className="flex items-center gap-1">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 3v12M12 3a6 6 0 000 12M12 3a6 6 0 010 12" />
+              </svg>
+              10 m resolution
+            </span>
+            <span className="flex items-center gap-1">
+              <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <rect x="3" y="3" width="18" height="18" rx="2" />
+                <path d="M9 9h.01M15 9h.01M9 15h.01M15 15h.01" />
+              </svg>
+              Multi-band
+            </span>
+          </div>
         </div>
       </div>
     </div>

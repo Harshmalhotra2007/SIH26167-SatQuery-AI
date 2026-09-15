@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 
 type Props = {
-  onUploaded: (id: string, url: string) => void
+  onUploaded: (id: string, url: string, trace?: any, confidence?: number, lastAnswer?: string, lastQuery?: string) => void
 }
 
 export default function ChangeDetection({ onUploaded }: Props) {
@@ -9,6 +9,7 @@ export default function ChangeDetection({ onUploaded }: Props) {
   const [afterFile, setAfterFile] = useState<File | null>(null)
   const [beforeDragging, setBeforeDragging] = useState(false)
   const [afterDragging, setAfterDragging] = useState(false)
+  const [question, setQuestion] = useState("What structural and land cover changes occurred between Date 1 and Date 2?")
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<{ overlay: string; description: string; pct: number } | null>(null)
 
@@ -23,14 +24,17 @@ export default function ChangeDetection({ onUploaded }: Props) {
       const fd = new FormData()
       fd.append('image_before', beforeFile)
       fd.append('image_after', afterFile)
+      fd.append('question', question)
+
       const res = await fetch('/api/change', { method: 'POST', body: fd })
-      if (!res.ok) throw new Error('Change detection failed')
+      if (!res.ok) throw new Error('Change VQA failed')
       const data = await res.json()
       setResult({ overlay: data.overlay_image_url, description: data.description, pct: data.change_percentage })
-      onUploaded('', '')
+      
+      onUploaded('', '', data.execution_trace, data.confidence, data.description, question)
     } catch (e) {
       console.error(e)
-      alert('Change detection analysis failed.')
+      alert('Change-VQA analysis failed.')
     } finally {
       setLoading(false)
     }
@@ -41,18 +45,23 @@ export default function ChangeDetection({ onUploaded }: Props) {
     e.stopPropagation()
     setDrag(false)
     const file = e.dataTransfer.files?.[0]
-    if (file && file.type.startsWith('image/')) {
+    if (file) {
       setFile(file)
     }
   }
 
   return (
     <div className="rounded-lg border border-slate-800 bg-slate-900 p-4 space-y-4 shadow-sm">
-      <div className="text-sm font-medium text-slate-200">
-        Bi-Temporal Change Detection
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-medium text-slate-200">
+          Multitemporal Change-VQA & Visual Diff
+        </div>
+        <span className="text-xs px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800 font-mono">
+          CDVQA Benchmark Compliant
+        </span>
       </div>
       <p className="text-xs text-slate-400">
-        Upload two satellite scenes of the exact same geographical location at different timestamps.
+        Upload bi-temporal satellite scenes (GeoTIFF, PNG, JPEG) and ask natural language questions about what changed.
       </p>
 
       <form onSubmit={onSubmit} className="space-y-4">
@@ -60,7 +69,7 @@ export default function ChangeDetection({ onUploaded }: Props) {
           {/* Before Image */}
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1.5">
-              T1 — Earlier Image
+              Date A (Temporal Baseline)
             </label>
             <div
               onDragOver={(e) => { e.preventDefault(); setBeforeDragging(true) }}
@@ -78,7 +87,7 @@ export default function ChangeDetection({ onUploaded }: Props) {
               <input
                 ref={beforeInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.tif,.tiff"
                 className="hidden"
                 onChange={(e) => e.target.files?.[0] && setBeforeFile(e.target.files[0])}
               />
@@ -95,7 +104,7 @@ export default function ChangeDetection({ onUploaded }: Props) {
           {/* After Image */}
           <div>
             <label className="block text-xs font-medium text-slate-300 mb-1.5">
-              T2 — Later Image
+              Date B (Temporal Follow-up)
             </label>
             <div
               onDragOver={(e) => { e.preventDefault(); setAfterDragging(true) }}
@@ -113,7 +122,7 @@ export default function ChangeDetection({ onUploaded }: Props) {
               <input
                 ref={afterInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,.tif,.tiff"
                 className="hidden"
                 onChange={(e) => e.target.files?.[0] && setAfterFile(e.target.files[0])}
               />
@@ -128,12 +137,23 @@ export default function ChangeDetection({ onUploaded }: Props) {
           </div>
         </div>
 
+        <div>
+          <label className="block text-xs text-slate-400 mb-1 font-medium">Change-VQA Question Prompt</label>
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            className="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
+            placeholder="e.g. What structural changes occurred between Date 1 and Date 2?"
+          />
+        </div>
+
         <button
           type="submit"
           className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-colors"
           disabled={loading || !beforeFile || !afterFile}
         >
-          {loading ? 'Analyzing Differences...' : 'Run Change Detection'}
+          {loading ? 'Executing Change-VQA Analysis...' : 'Run Change-VQA & Spatial Diff'}
         </button>
       </form>
 
@@ -146,7 +166,7 @@ export default function ChangeDetection({ onUploaded }: Props) {
             </span>
           </div>
           <img src={result.overlay} className="rounded-lg max-h-[220px] w-full object-contain border border-slate-800" alt="Change detection overlay highlighting modified regions" />
-          <div className="text-xs text-slate-300 bg-slate-950 p-3 rounded border border-slate-800/80 leading-relaxed">
+          <div className="text-xs text-slate-300 bg-slate-950 p-3 rounded border border-slate-800/80 leading-relaxed font-sans">
             {result.description}
           </div>
         </div>

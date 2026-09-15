@@ -5,18 +5,20 @@ pydantic==2.9.2
 pydantic-settings==2.5.2
 python-dotenv==1.0.1
 
-# Image processing (pure Pillow + NumPy for Serverless/Vercel compatibility)
+# Image & GeoTIFF Processing (Pillow + NumPy + tifffile for Serverless/Vercel & GeoTIFF compatibility)
 Pillow==10.4.0
 numpy==1.26.4
+tifffile==2024.9.20
 
-# Gemini (primary VLM)
+# Gemini & Multimodal VLM
 google-generativeai==0.8.3
 
-# Local VLM fallback (Qwen2-VL / Moondream2) — uncomment when you reach that step
-# torch==2.4.1
-# transformers==4.45.2
-# accelerate==0.34.2
-# bitsandbytes==0.44.1
+# Remote Sensing Adaptation & Benchmark Evaluation
+huggingface-hub==0.25.1
+datasets==3.0.1
+transformers==4.45.2
+peft==0.13.0
+trl==0.11.1
+torch==2.4.1
+bitsandbytes==0.44.1
 
-# Stretch goal: YOLOv8 object detection
-# ultralytics==8.3.0

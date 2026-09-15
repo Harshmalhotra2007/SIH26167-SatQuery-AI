@@ -74,3 +74,47 @@ def test_change_endpoint():
     assert "description" in data
     assert "change_percentage" in data
     assert data["change_percentage"] > 0
+    assert "confidence" in data
+    assert "execution_trace" in data
+
+
+def test_cross_modal_and_report_endpoints():
+    opt_bytes = create_test_image_bytes(color=(100, 100, 255))
+    sar_bytes = create_test_image_bytes(color=(50, 50, 50))
+
+    res_opt = client.post("/api/upload", files={"file": ("optical.tif", opt_bytes, "image/tiff")})
+    res_sar = client.post("/api/upload", files={"file": ("sar.tif", sar_bytes, "image/tiff")})
+
+    opt_id = res_opt.json()["image_id"]
+    sar_id = res_sar.json()["image_id"]
+
+    cm_res = client.post(
+        "/api/query/cross-modal",
+        json={
+            "optical_image_id": opt_id,
+            "sar_image_id": sar_id,
+            "question": "Cross-reference Sentinel-2 optical reflectance and Sentinel-1 SAR backscatter."
+        }
+    )
+    assert cm_res.status_code == 200
+    cm_data = cm_res.json()
+    assert "answer" in cm_data
+    assert "confidence" in cm_data
+    assert "execution_trace" in cm_data
+
+    # Report Download test
+    report_res = client.post(
+        "/api/report/download",
+        json={
+            "task_name": "Cross-Modal Analysis",
+            "query_or_prompt": "Cross-reference optical and SAR",
+            "model_used": "BigEarthNet-QLoRA",
+            "confidence_score": 0.92,
+            "execution_time_ms": 120,
+            "tools_invoked": ["RasterioLoader", "SARDoubleBounceAnalyzer"],
+            "output_narrative": "Complementary optical and SAR analysis verified."
+        }
+    )
+    assert report_res.status_code == 200
+    assert "satquery_execution_report" in report_res.headers["content-disposition"]
+

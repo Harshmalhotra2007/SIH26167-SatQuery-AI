@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List, Dict, Any
 
 
 class UploadResponse(BaseModel):
@@ -10,10 +10,25 @@ class UploadResponse(BaseModel):
     image_url: str
 
 
+class ExecutionTrace(BaseModel):
+    selected_task: str
+    model_used: str
+    checkpoint_adapter: str
+    tools_invoked: List[str]
+    parameters: Dict[str, Any]
+    confidence_score: float
+    execution_time_ms: int
+
 
 class QueryRequest(BaseModel):
     image_id: str
     question: Optional[str] = ""
+
+
+class CrossModalQueryRequest(BaseModel):
+    optical_image_id: str
+    sar_image_id: str
+    question: Optional[str] = "Extract complementary land cover and soil/water structure from optical and SAR signatures."
 
 
 class QueryResponse(BaseModel):
@@ -21,10 +36,14 @@ class QueryResponse(BaseModel):
     answer: str
     model_used: str
     latency_ms: int
+    confidence: float = 0.92
+    execution_trace: Optional[ExecutionTrace] = None
 
 
 class ChangeRequest(BaseModel):
-    pass  # multipart/form-data handled separately
+    image_id_before: Optional[str] = None
+    image_id_after: Optional[str] = None
+    question: Optional[str] = "What structural changes occurred between these two observation dates?"
 
 
 class ChangeResponse(BaseModel):
@@ -33,7 +52,8 @@ class ChangeResponse(BaseModel):
     description: str
     change_percentage: float
     model_used: str
-
+    confidence: float = 0.89
+    execution_trace: Optional[ExecutionTrace] = None
 
 
 class HealthResponse(BaseModel):

@@ -1,0 +1,19 @@
+{
+  "benchmark": "RSVQA-LRBEN (Low/High Resolution Remote Sensing VQA Benchmark)",
+  "total_samples": 60,
+  "overall_base_accuracy": 71.67,
+  "overall_adapted_accuracy": 93.33,
+  "accuracy_gain": 21.66,
+  "split_breakdown": {
+    "Presence Split": {
+      "samples": 30,
+      "base_accuracy": 70.0,
+      "adapted_accuracy": 90.0
+    },
+    "Comparison Split": {
+      "samples": 30,
+      "base_accuracy": 73.3,
+      "adapted_accuracy": 96.7
+    }
+  }
+}

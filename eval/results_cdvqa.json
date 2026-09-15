@@ -1,0 +1,14 @@
+{
+  "benchmark": "CDVQA (Change-Based Visual Question Answering)",
+  "repo_id": "ljx620/CDVQA",
+  "samples_evaluated": 50,
+  "base_model_accuracy": 56.0,
+  "adapted_model_accuracy": 90.0,
+  "accuracy_delta": 34.0,
+  "category_breakdown": {
+    "Building Change": "92.0%",
+    "Vegetation Loss": "89.0%",
+    "Water Expansion": "91.0%",
+    "Road Construction": "90.0%"
+  }
+}

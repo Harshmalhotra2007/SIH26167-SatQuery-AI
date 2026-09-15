@@ -6,37 +6,28 @@
 **Category:** Software
 **Theme:** Space Technology
 
-**Full ask (from ISRO):** Build a vision-language assistant that lets users query remote sensing imagery (optical, SAR, cross-modal, bi-temporal) using natural language, and get answers via visual question answering, captioning, grounding, and change analysis.
+**Full Ask (from ISRO):** Build an interactive vision-language assistant that lets users query remote sensing imagery (optical, SAR, cross-modal, bi-temporal) using natural language, producing text answers, visual question answering, captioning, change descriptions, cross-modal fusion, and observable execution traces.
 
-## Why full scope is NOT the target for this build
-- Team has zero prior ML/DL experience.
-- SAR imagery preprocessing and true cross-modal fusion are research-grade problems (see: LISAT, ChangeChat, DeltaVLM, GeoPilot — all recent published papers tackling this exact space). Attempting the full brief risks a half-working demo of everything instead of a solid demo of something.
-- 15 days is enough for a strong, narrow MVP + one real differentiator — not enough to reproduce a research paper from scratch.
+---
 
-## Locked MVP Scope (v1)
+## 100% SIH Compliance Scope
 
-### In scope
-1. **Visual Question Answering** — upload an optical satellite/aerial image, ask a natural-language question, get an answer.
-2. **Captioning** — auto-generate a descriptive caption for any uploaded image.
-3. **Change Detection (the differentiator)** — upload two images of the same location (different times), get:
-   - Visual diff overlay (highlighted changed regions)
-   - Natural-language description of what changed
-4. **Object counting** — prompt-based counting via VLM (e.g. "how many buildings/vehicles are visible").
+### All 5 Mandatory ISRO Demonstrations (In Scope):
+1. **Visual Question Answering & Auto-Captioning** — Upload optical or GeoTIFF/TIFF imagery, ask questions, or generate descriptive natural-language captions.
+2. **Second Single-Image Task (Counting & Grounding)** — Prompt-based object counting and spatial feature identification across optical and SAR imagery.
+3. **Change-Based Visual Question Answering (Change-VQA)** — Upload bi-temporal image pairs (Date A & Date B) + natural language questions to obtain conversational answers describing what changed alongside visual diff overlays.
+4. **Cross-Modal Reasoning (Optical + SAR)** — Input co-registered optical (e.g. Sentinel-2 / Cartosat-2S) and SAR (e.g. Sentinel-1 / RISAT) image pairs to extract complementary land cover and soil/water structure information.
+5. **Agentic Orchestration & Observable Execution Trace** — Real-time display of tool selection, model parameters, confidence estimation, and downloadable PDF/JSON execution reports.
 
-### Explicitly OUT of scope for v1 (mention as future work in pitch)
-- SAR imagery support
-- True cross-modal (optical+SAR fused) reasoning
-- Visual grounding with bounding-box output (unless Day 11–12 stretch goal is reached via YOLOv8)
-- Real-time satellite feed ingestion
+---
 
-### Stretch goals (Day 11–12, only if core is done and stable)
-- LoRA fine-tune of a small local VLM (e.g. Qwen2-VL-2B, 4-bit) on RSICD or similar RS captioning dataset — feasible on RTX 4050 (6GB VRAM) and would be a genuine differentiator vs. teams doing raw prompting only.
-- YOLOv8 pretrained object detection overlay for the counting feature (real bounding boxes instead of just a VLM-guessed number).
+## Technical Architecture & Fine-Tuning
+- **Primary Adaptation Dataset:** `BigEarthNet.txt` (`BIFOLD-BigEarthNetv2-0/BigEarthNet.txt`) containing co-registered Sentinel-1 SAR & Sentinel-2 Optical multi-label patch pairs.
+- **Fine-Tuning Pipeline (`train/`):** QLoRA 4-bit adaptation (`Qwen2-VL-2B-Instruct`) for remote sensing domain alignment.
+- **Benchmark Evaluation (`eval/`):** Quantitative evaluation on `CDVQA`, `VRSBench`, and `RSVQA-LRBEN`.
+- **Supported Formats:** GeoTIFF/TIFF (`rasterio`/`tifffile`), PNG, JPEG.
 
-## Target users (per ISRO framing)
-Analysts / researchers who need quick, conversational insights from satellite imagery without manual GIS tooling.
+---
 
-## Success criteria for hackathon demo
-- Judge can upload/select an image and get a coherent, relevant answer in under 5 seconds.
-- Change detection demo is visually obvious (clear before/after + highlighted diff).
-- System handles a bad/irrelevant image gracefully (no crash, no nonsense answer presented confidently).
+## Target Users (ISRO Framing)
+ISRO/SAC Remote Sensing Analysts, GIS researchers, disaster management teams, and urban planners requiring conversational, multimodal insights without manual GIS tool overhead.
