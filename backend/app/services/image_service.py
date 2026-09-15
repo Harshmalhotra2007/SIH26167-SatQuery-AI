@@ -1,9 +1,8 @@
+import io
 from pathlib import Path
 from typing import Tuple
-import cv2
-import numpy as np
 from PIL import Image
-import io
+import numpy as np
 
 
 class ImageService:
@@ -11,27 +10,28 @@ class ImageService:
         self.upload_dir = upload_dir
 
     def save(self, content: bytes, dest: Path) -> Tuple[int, int]:
-        arr = np.frombuffer(content, dtype=np.uint8)
-        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        if img is None:
+        try:
+            img = Image.open(io.BytesIO(content)).convert("RGB")
+        except Exception:
             raise ValueError("invalid image bytes")
-        h, w = img.shape[:2]
-        cv2.imwrite(str(dest), img, [cv2.IMWRITE_JPEG_QUALITY, 90])
-        return int(w), int(h)
+        w, h = img.size
+        img.save(dest, format="JPEG", quality=90)
+        return w, h
 
     def load(self, path: Path) -> np.ndarray:
-        arr = np.fromfile(str(path), dtype=np.uint8)
-        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        if img is None:
+        try:
+            img = Image.open(path).convert("RGB")
+            return np.array(img)
+        except Exception:
             raise ValueError("cannot decode image")
-        return img
 
     def encode_png(self, img: np.ndarray) -> bytes:
-        ok, buf = cv2.imencode(".png", img)
-        if not ok:
-            raise ValueError("png encode failed")
-        return buf.tobytes()
+        pil_img = Image.fromarray(img)
+        buf = io.BytesIO()
+        pil_img.save(buf, format="PNG")
+        return buf.getvalue()
 
     def to_pil(self, img: np.ndarray) -> Image.Image:
-        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        return Image.fromarray(img_rgb)
+        if isinstance(img, Image.Image):
+            return img
+        return Image.fromarray(img)

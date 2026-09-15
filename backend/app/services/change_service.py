@@ -2,10 +2,8 @@ import io
 import time
 from pathlib import Path
 from typing import Tuple
-import cv2
 import numpy as np
 from PIL import Image
-
 from fastapi import UploadFile
 
 from app.services.image_service import ImageService
@@ -24,29 +22,29 @@ class ChangeService:
         img2 = self._decode(a_content)
         img1_aligned, img2_aligned = self._align(img1, img2)
 
-        gray1 = cv2.cvtColor(img1_aligned, cv2.COLOR_BGR2GRAY)
-        gray2 = cv2.cvtColor(img2_aligned, cv2.COLOR_BGR2GRAY)
+        # Grayscale conversion using luminance weights (0.299 R + 0.587 G + 0.114 B)
+        gray1 = np.dot(img1_aligned[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
+        gray2 = np.dot(img2_aligned[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
 
-        diff = cv2.absdiff(gray1, gray2)
-        _, mask = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
-        kernel = np.ones((5, 5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.dilate(mask, kernel, iterations=1)
+        # Absolute difference and thresholding
+        diff = np.abs(gray1.astype(np.int16) - gray2.astype(np.int16)).astype(np.uint8)
+        mask = (diff > 25).astype(np.uint8) * 255
 
         change_pct = float(np.count_nonzero(mask)) / mask.size * 100
 
+        # Red overlay for changed pixels (RGB: [255, 0, 0])
         overlay = img2_aligned.copy()
-        overlay[mask > 0] = (0, 0, 255)
+        overlay[mask > 0] = [255, 0, 0]
 
         out_name = f"diff_{int(time.time())}.png"
         out_path = Path(self.image_service.upload_dir) / out_name
-        cv2.imwrite(str(out_path), overlay, [cv2.IMWRITE_PNG_COMPRESSION, 3])
+        Image.fromarray(overlay).save(out_path, format="PNG")
 
-        changed = cv2.bitwise_and(img2_aligned, img2_aligned, mask=mask)
+        # Crop changed region
         x, y, w, h = self._tight_crop(mask)
-        crop = changed[y : y + h, x : x + w]
+        crop = img2_aligned[y : y + h, x : x + w]
         crop_path = Path(self.image_service.upload_dir) / f"crop_{int(time.time())}.png"
-        cv2.imwrite(str(crop_path), crop, [cv2.IMWRITE_PNG_COMPRESSION, 3])
+        Image.fromarray(crop).save(crop_path, format="PNG")
 
         description = await self.vlm_service.ask(crop_path, "Describe what changed in this region.")
 
@@ -57,11 +55,11 @@ class ChangeService:
         }
 
     def _decode(self, content: bytes) -> np.ndarray:
-        arr = np.frombuffer(content, dtype=np.uint8)
-        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
-        if img is None:
+        try:
+            img = Image.open(io.BytesIO(content)).convert("RGB")
+            return np.array(img)
+        except Exception:
             raise ValueError("invalid image")
-        return img
 
     def _align(self, a: np.ndarray, b: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         h = min(a.shape[0], b.shape[0])
