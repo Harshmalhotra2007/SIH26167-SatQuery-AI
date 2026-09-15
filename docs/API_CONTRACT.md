@@ -1,33 +1,34 @@
-# API Contract — SatQuery AI
+# API Contract — SatQuery AI (ISRO SIH26167)
 
-Base URL (dev): `http://localhost:8000/api`
+Base URL (dev): `http://localhost:8000/api` | Live Vercel: `https://sih26167-satquery-ai.vercel.app/api`
 
-All responses are JSON. All errors follow the error shape at the bottom.
+All responses are JSON. Supported image formats: **GeoTIFF (`.tif`, `.tiff`)**, JPEG, PNG, WEBP.
 
 ---
 
-## 1. Upload image
+## 1. Upload image (Optical / SAR / GeoTIFF)
 
 `POST /upload`
 
 **Request:** `multipart/form-data`
 | Field | Type | Notes |
 |---|---|---|
-| `file` | file | image/jpeg, image/png |
+| `file` | file | Optical / SAR / GeoTIFF (`.tif`, `.tiff`, `.jpg`, `.png`) |
 
 **Response 200**
 ```json
 {
   "image_id": "img_7f3a9c",
-  "filename": "site_2024.jpg",
+  "filename": "sentinel2_optical.tif",
   "width": 1024,
-  "height": 768
+  "height": 768,
+  "image_url": "/static/img_7f3a9c.jpg"
 }
 ```
 
 ---
 
-## 2. Ask a question (VQA / captioning / counting)
+## 2. Single-Image VQA & Auto-Captioning
 
 `POST /query`
 
@@ -35,51 +36,127 @@ All responses are JSON. All errors follow the error shape at the bottom.
 ```json
 {
   "image_id": "img_7f3a9c",
-  "question": "How many buildings are visible in this image?"
+  "question": "Identify land cover classifications and built-up density."
 }
 ```
-- If `question` is omitted or empty, backend treats it as a captioning request.
 
 **Response 200**
 ```json
 {
-  "answer": "There are approximately 14 buildings visible, mostly clustered in the northern half of the image.",
-  "model_used": "gemini-1.5-flash",
-  "latency_ms": 1240
+  "answer": "High-resolution optical patch displaying mixed urban and agricultural land cover...",
+  "model_used": "BigEarthNet-QLoRA / Qwen2-VL-2B-Instruct",
+  "latency_ms": 110,
+  "confidence": 0.94,
+  "execution_trace": {
+    "selected_task": "Single-Image VQA / Auto-Caption",
+    "model_used": "BigEarthNet-QLoRA / Qwen2-VL-2B-Instruct",
+    "checkpoint_adapter": "train/checkpoints/BigEarthNet_QLoRA_adapter.pt",
+    "tools_invoked": ["RasterImageLoader", "BigEarthNet_VLM_Adapter"],
+    "parameters": {
+      "quantization": "4-bit NF4",
+      "temperature": 0.2
+    },
+    "confidence_score": 0.94,
+    "execution_time_ms": 110
+  }
 }
 ```
 
 ---
 
-## 3. Change detection
+## 3. Cross-Modal Reasoning (Optical + SAR)
+
+`POST /query/cross-modal`
+
+**Request**
+```json
+{
+  "optical_image_id": "img_opt_123",
+  "sar_image_id": "img_sar_456",
+  "question": "Cross-reference optical surface reflectances and SAR backscatter penetration."
+}
+```
+
+**Response 200**
+```json
+{
+  "answer": "[Cross-Modal Optical+SAR Analysis] Integrated analysis of co-registered Optical and SAR imagery...",
+  "model_used": "BigEarthNet-QLoRA Cross-Modal / Qwen2-VL-2B",
+  "latency_ms": 140,
+  "confidence": 0.92,
+  "execution_trace": {
+    "selected_task": "Cross-Modal Optical + SAR Analysis",
+    "model_used": "BigEarthNet-QLoRA Cross-Modal / Qwen2-VL-2B",
+    "checkpoint_adapter": "train/checkpoints/BigEarthNet_QLoRA_adapter.pt",
+    "tools_invoked": ["OpticalRasterioLoader", "SARDoubleBounceAnalyzer", "CrossModalFusionAdapter"],
+    "confidence_score": 0.92,
+    "execution_time_ms": 140
+  }
+}
+```
+
+---
+
+## 4. Change-Based VQA & Spatial Diffing (CDVQA Benchmark)
 
 `POST /change`
 
 **Request:** `multipart/form-data`
 | Field | Type | Notes |
 |---|---|---|
-| `image_before` | file | earlier timestamp |
-| `image_after` | file | later timestamp |
+| `image_before` | file | Baseline GeoTIFF/PNG (Date A) |
+| `image_after` | file | Follow-up GeoTIFF/PNG (Date B) |
+| `question` | string | Form string prompt: e.g. "What structural changes occurred between Date 1 and Date 2?" |
 
 **Response 200**
 ```json
 {
   "overlay_image_url": "/static/diffs/diff_a1b2c3.png",
-  "description": "A new structure has appeared in the central-east region of the image, and vegetation cover has decreased along the southern edge.",
-  "change_percentage": 12.4,
-  "model_used": "gemini-1.5-flash"
+  "description": "[CDVQA Narrative] Multitemporal comparison between Date A and Date B...",
+  "change_percentage": 14.2,
+  "model_used": "CDVQA-Adapted / Qwen2-VL-2B",
+  "confidence": 0.91,
+  "execution_trace": {
+    "selected_task": "Multitemporal Change-VQA & Visual Diff",
+    "model_used": "CDVQA-Adapted / Qwen2-VL-2B",
+    "checkpoint_adapter": "train/checkpoints/BigEarthNet_QLoRA_adapter.pt",
+    "tools_invoked": ["RasterDiffEngine", "SpatialContourDetector", "CDVQA_VLM_Adapter"],
+    "confidence_score": 0.91,
+    "execution_time_ms": 180
+  }
 }
 ```
 
 ---
 
-## 4. Health check
+## 5. Download Execution Audit Report
+
+`POST /report/download`
+
+**Request**
+```json
+{
+  "task_name": "Cross-Modal Optical + SAR Analysis",
+  "query_or_prompt": "Cross-reference optical and SAR",
+  "model_used": "BigEarthNet-QLoRA",
+  "confidence_score": 0.92,
+  "execution_time_ms": 140,
+  "tools_invoked": ["OpticalRasterioLoader", "SARDoubleBounceAnalyzer"],
+  "output_narrative": "Complementary optical and SAR analysis verified."
+}
+```
+
+**Response 200** (`application/json`, Content-Disposition attachment: `satquery_execution_report.json`)
+
+---
+
+## 6. Health check
 
 `GET /health`
 
 **Response 200**
 ```json
-{ "status": "ok", "vlm_backend": "gemini", "fallback_available": true }
+{ "status": "ok", "vlm_backend": "BigEarthNet-QLoRA-Standby", "fallback_available": true }
 ```
 
 ---
@@ -91,20 +168,8 @@ All responses are JSON. All errors follow the error shape at the bottom.
 {
   "error": {
     "code": "INVALID_IMAGE",
-    "message": "Uploaded file is not a valid image."
+    "message": "Uploaded file is not a valid image or GeoTIFF."
   }
 }
 ```
 
-| Code | When |
-|---|---|
-| `INVALID_IMAGE` | Corrupt/unsupported file format |
-| `IMAGE_NOT_FOUND` | `image_id` doesn't exist (expired/never uploaded) |
-| `VLM_UNAVAILABLE` | Both Gemini and local fallback failed |
-| `QUERY_TOO_LONG` | Question exceeds length limit (define: 500 chars) |
-
----
-
-## Notes for both frontend and backend devs
-- `image_id` is server-generated and short-lived (in-memory or temp-dir storage is fine for a hackathon — no need for a database).
-- Keep this file as the single source of truth. If either side needs a field changed, update this file first, then code.

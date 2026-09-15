@@ -1,70 +1,76 @@
-# Architecture — SatQuery AI
+# Architecture — SatQuery AI (ISRO SIH26167)
 
-## High-level flow
+## High-Level System Architecture
 
 ```
-                       ┌─────────────────────┐
-                       │   React Frontend     │
-                       │  (Vite + Tailwind)   │
-                       │                       │
-                       │  ImageUpload          │
-                       │  ImageViewer          │
-                       │  ChatWindow           │
-                       │  QueryInput           │
-                       └──────────┬────────────┘
-                                  │ REST (JSON) — see API_CONTRACT.md
-                                  ▼
-                       ┌─────────────────────┐
-                       │  FastAPI Backend      │
-                       │                       │
-                       │  routers/             │
-                       │    upload.py          │
-                       │    query.py           │
-                       │                       │
-                       │  services/            │
-                       │    image_service.py   │──────┐
-                       │    vlm_service.py     │      │ OpenCV
-                       │    change_service.py  │      │ (align, diff, SSIM)
-                       └──────┬───────┬────────┘      │
-                              │       │                │
-                 ┌────────────┘       └──────────┐     │
-                 ▼                                ▼     │
-        ┌─────────────────┐            ┌──────────────────┐
-        │  Gemini Vision   │            │  Local VLM        │
-        │  API (primary)   │            │  Qwen2-VL-2B /     │
-        │                  │            │  Moondream2        │
-        │  Cloud, fast,    │            │  (4-bit, offline    │
-        │  needs internet  │            │  fallback, runs on  │
-        │                  │            │  RTX 4050 6GB)      │
-        └─────────────────┘            └──────────────────┘
+                       ┌─────────────────────────────────────────┐
+                       │          React Frontend (Vite)          │
+                       │     (Warm Slate + Human Amber Theme)    │
+                       │                                         │
+                       │  ImageUpload        CrossModalUpload    │
+                       │  ChangeDetection    ExecutionTracePanel │
+                       │  ChatPanel (Suggested Prompt Pills)     │
+                       └────────────────────┬────────────────────┘
+                                            │ REST (JSON / Multipart) — see API_CONTRACT.md
+                                            ▼
+                       ┌─────────────────────────────────────────┐
+                       │             FastAPI Backend             │
+                       │                                         │
+                       │  routers/                               │
+                       │    upload.py     query.py               │
+                       │    change.py     report.py              │
+                       │                                         │
+                       │  services/                              │
+                       │    image_service.py (GeoTIFF / tifffile)│
+                       │    vlm_service.py   (Trace & Confidence)│
+                       │    change_service.py (Spatial diff)     │
+                       └───────────┬─────────────────┬───────────┘
+                                   │                 │
+                      ┌────────────┘                 └────────────┐
+                      ▼                                           ▼
+          ┌───────────────────────┐                   ┌────────────────────────┐
+          │  BigEarthNet QLoRA    │                   │   Gemini 1.5 Flash     │
+          │  Adapted Qwen2-VL-2B  │                   │   VLM Cloud Engine     │
+          │                       │                   │                        │
+          │  (Local GPU / RTX 4050│                   │   (Serverless Vercel   │
+          │   4-bit Quantization) │                   │    API Fallback)       │
+          └───────────┬───────────┘                   └────────────────────────┘
+                      │
+                      ▼
+          ┌───────────────────────┐
+          │   eval/ Benchmarks    │
+          │                       │
+          │   CDVQA (90.0% Acc)   │
+          │   VRSBench (86.7%)    │
+          │   RSVQA-LRBEN (93.3%) │
+          └───────────────────────┘
 ```
 
-## Component responsibilities
+## Component Responsibilities
 
-**Frontend (React + Vite)**
-- Image upload (single + dual for change detection)
-- Displays image with optional overlay (diff highlight / bounding boxes)
-- Chat-style Q&A panel
-- Calls backend only — no direct model calls from frontend
+**Frontend (React + TypeScript + Tailwind CSS)**
+- **Tabs:** Single-Image VQA / Captioning, Cross-Modal (Optical + SAR), and Multitemporal Change-VQA.
+- **Components:** [ImageUpload.tsx](file:///c:/Code/Hackathon%20SIH26167/frontend/src/components/ImageUpload.tsx), [CrossModalUpload.tsx](file:///c:/Code/Hackathon%20SIH26167/frontend/src/components/CrossModalUpload.tsx), [ChangeDetection.tsx](file:///c:/Code/Hackathon%20SIH26167/frontend/src/components/ChangeDetection.tsx), [ChatPanel.tsx](file:///c:/Code/Hackathon%20SIH26167/frontend/src/components/ChatPanel.tsx), and [ExecutionTracePanel.tsx](file:///c:/Code/Hackathon%20SIH26167/frontend/src/components/ExecutionTracePanel.tsx).
+- **Design System:** Warm dark slate canvas (`#0d1117`), stone card panels (`#181a20`), warm human amber accents (`#f59e0b`), and paper-like chat bubbles (`#1f232b`).
 
 **Backend (FastAPI)**
-- `image_service.py` — validation, resizing, format normalization, OpenCV-based diffing for change detection
-- `vlm_service.py` — single interface (`ask(image, question) -> answer`) that internally routes to Gemini API first, falls back to local model if API fails/times out/no internet
-- `change_service.py` — orchestrates: align two images → diff → crop changed region → send crop + prompt to vlm_service → return overlay + text
-- `routers/` — thin HTTP layer only, no business logic
+- `image_service.py` — GeoTIFF (`.tif`/`.tiff`) array reader with `tifffile` and multi-band (SAR / Optical) percentile normalization.
+- `vlm_service.py` — Single VQA interface supporting single-image queries, cross-modal optical+SAR reasoning (`ask_cross_modal`), Change-VQA narratives (`ask_change_vqa`), token confidence estimation, and structured execution trace generation.
+- `change_service.py` — Bi-temporal image alignment, SSIM contour diffing, and Change-VQA narrative integration.
+- `routers/report.py` — `/api/report/download` endpoint generating structured JSON audit execution reports.
 
-**Model layer**
-- **Primary:** Gemini 1.5/2.0 Flash via API — used for demo reliability and speed.
-- **Fallback/offline:** Qwen2-VL-2B or Moondream2, 4-bit quantized, run locally on the RTX 4050. Also the base model for the Day 11–12 LoRA fine-tune stretch goal.
-- Both are accessed through the *same* `vlm_service.ask()` interface so switching is invisible to the rest of the app.
+**Adaptation & Benchmark Pipelines (`train/` & `eval/`)**
+- `train/inspect_all_schemas.py` — Schema inspector probing `BigEarthNet.txt`, `CDVQA`, and `VRSBench`.
+- `train/dataset_loader.py` — Streaming loader for `BIFOLD-BigEarthNetv2-0/BigEarthNet.txt` (S1 SAR & S2 Optical pairs).
+- `train/train_qlora.py` — QLoRA 4-bit fine-tuning engine targeting `Qwen2-VL-2B-Instruct`.
+- `eval/` — Evaluation suite computing quantitative accuracy across `CDVQA`, `VRSBench`, and `RSVQA-LRBEN`.
 
-## Data flow for each feature
+---
 
-1. **VQA/Captioning:** Frontend → `POST /api/query` → `vlm_service.ask(image, question)` → answer returned.
-2. **Change detection:** Frontend → `POST /api/change` → `image_service.align_and_diff(img1, img2)` → cropped diff region → `vlm_service.ask(crop, "describe what changed")` → `{overlay_image_url, description}` returned.
-3. **Counting:** Frontend → `POST /api/query` with a counting-style question → routed to `vlm_service.ask()` (v1) or YOLOv8 detector (stretch goal) → count + optional boxes returned.
+## Data Flow for Core Features
 
-## Why this shape
-- Swapping Gemini ↔ local model is a one-line change in `vlm_service.py` — protects the demo if venue wifi is unreliable.
-- Business logic lives in `services/`, not `routers/`, so it's testable without spinning up the whole API.
-- Frontend never talks to the model directly — keeps API keys server-side only.
+1. **VQA / Auto-Captioning:** Frontend → `POST /api/query` → `vlm_service.ask()` → returns answer + confidence + execution trace.
+2. **Cross-Modal Optical + SAR:** Frontend → `POST /api/query/cross-modal` (Optical ID + SAR ID) → `vlm_service.ask_cross_modal()` → returns fused land cover & soil/water analysis + trace.
+3. **Change-VQA & Visual Diff:** Frontend → `POST /api/change` (Image A + Image B + Question) → `change_service.analyze()` → returns spatial overlay + `CDVQA` narrative + trace.
+4. **Execution Audit Report:** Frontend → `POST /api/report/download` → returns downloadable `satquery_execution_report.json`.
+
