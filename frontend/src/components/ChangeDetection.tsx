@@ -27,7 +27,7 @@ export default function ChangeDetection({ onUploaded }: Props) {
       if (!res.ok) throw new Error('Change detection failed')
       const data = await res.json()
       setResult({ overlay: data.overlay_image_url, description: data.description, pct: data.change_percentage })
-      onUploaded('change', data.overlay_image_url)
+      onUploaded('', '')
     } catch (e) {
       console.error(e)
       alert('Change detection analysis failed.')
@@ -145,7 +145,7 @@ export default function ChangeDetection({ onUploaded }: Props) {
               {result.pct}% area changed
             </span>
           </div>
-          <img src={result.overlay} className="rounded-lg max-h-[220px] w-full object-cover border border-slate-800" alt="Change Overlay" />
+          <img src={result.overlay} className="rounded-lg max-h-[220px] w-full object-contain border border-slate-800" alt="Change detection overlay highlighting modified regions" />
           <div className="text-xs text-slate-300 bg-slate-950 p-3 rounded border border-slate-800/80 leading-relaxed">
             {result.description}
           </div>

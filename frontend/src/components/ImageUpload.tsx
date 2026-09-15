@@ -95,13 +95,15 @@ export default function ImageUpload({ onUploaded, currentId }: Props) {
         />
 
         <div className="flex flex-col items-center justify-center space-y-2">
-          <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300 text-lg">
+          <div className="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-slate-300">
             {uploading ? (
-              <span className="animate-spin">⏳</span>
-            ) : isDragging ? (
-              '📥'
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.48-8.48l2.83-2.83M2 12h4m12 0h4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83" />
+              </svg>
             ) : (
-              '🛰️'
+              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12" />
+              </svg>
             )}
           </div>
 

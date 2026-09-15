@@ -2,6 +2,8 @@
 backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
+__pycache__/
+/**/__pycache__/
 *.pyc
 .env
 .pytest_cache/
@@ -18,6 +20,7 @@ tmp_uploads/
 # OS / editor / agent scratch
 .DS_Store
 .vscode/
+.cursor/
 *.log
 .agents/
 .claude/

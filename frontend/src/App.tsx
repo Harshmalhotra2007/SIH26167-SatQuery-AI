@@ -45,11 +45,13 @@ export default function App() {
             <ChangeDetection onUploaded={handleUploaded} />
           )}
 
-          <div className="rounded border border-slate-800 bg-slate-900 p-4 min-h-[260px] flex items-center justify-center text-slate-400">
+          <div className="rounded border border-slate-800 bg-slate-900 flex items-center justify-center text-slate-400">
             {imageUrl ? (
-              <img src={imageUrl} className="max-h-[360px] rounded" />
+              <img src={imageUrl} className="max-h-[360px] max-w-full rounded object-contain" alt="Uploaded satellite imagery" />
             ) : (
-              <span>No image loaded</span>
+              <div className="aspect-video w-full flex items-center justify-center">
+                <span>No image loaded</span>
+              </div>
             )}
           </div>
         </section>
