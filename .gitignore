@@ -32,3 +32,5 @@ satquery-ai-starter.zip
 *.safetensors
 *.bin
 *.pt
+
+.vercel

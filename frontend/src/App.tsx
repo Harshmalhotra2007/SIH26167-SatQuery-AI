@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import ImageUpload from './components/ImageUpload'
 import ChatPanel from './components/ChatPanel'
 import ChangeDetection from './components/ChangeDetection'
@@ -60,6 +61,8 @@ export default function App() {
           <ChatPanel imageId={imageId} disabled={!imageId} />
         </section>
       </main>
+      <Analytics />
     </div>
   )
 }
+
