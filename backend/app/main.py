@@ -18,10 +18,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from app.core.config import get_upload_dir
+
 # Static uploads
-UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "./tmp_uploads"))
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+UPLOAD_DIR = get_upload_dir()
 app.mount("/static", StaticFiles(directory=str(UPLOAD_DIR)), name="static")
+
 
 # Health
 vlm_service = VLMService()

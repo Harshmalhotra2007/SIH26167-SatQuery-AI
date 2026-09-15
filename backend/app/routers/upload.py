@@ -8,11 +8,13 @@ from fastapi import APIRouter, UploadFile, File, HTTPException
 from app.models.schemas import UploadResponse, ErrorDetail
 from app.services.image_service import ImageService
 
+from app.core.config import get_upload_dir
+
 router = APIRouter()
 
-UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "./tmp_uploads"))
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+UPLOAD_DIR = get_upload_dir()
 image_service = ImageService(upload_dir=UPLOAD_DIR)
+
 
 _image_registry: Dict[str, dict] = {}
 

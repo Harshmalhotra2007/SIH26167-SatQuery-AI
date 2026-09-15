@@ -17,6 +17,7 @@ class QueryRequest(BaseModel):
 
 
 class QueryResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
     answer: str
     model_used: str
     latency_ms: int
@@ -27,10 +28,12 @@ class ChangeRequest(BaseModel):
 
 
 class ChangeResponse(BaseModel):
+    model_config = {"protected_namespaces": ()}
     overlay_image_url: str
     description: str
     change_percentage: float
     model_used: str
+
 
 
 class HealthResponse(BaseModel):
