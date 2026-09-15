@@ -7,65 +7,42 @@ type Props = {
 
 type Message = { role: 'user' | 'assistant'; content: string; latency?: number }
 
-const QuickActions = [
-  {
-    id: 'caption',
-    label: 'Auto Caption',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-        <rect x="3" y="3" width="18" height="18" rx="2" />
-        <circle cx="12" cy="12" r="3" />
-      </svg>
-    ),
-    prompt: 'Describe this satellite image in detail. Include land cover types, notable features, and spatial patterns.',
-  },
-  {
-    id: 'count',
-    label: 'Count Structures',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-        <rect x="3" y="4" width="18" height="16" rx="2" />
-        <path d="M9 20v-6h6v6M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01" />
-      </svg>
-    ),
-    prompt: 'How many buildings or artificial structures are visible in this image? Provide an approximate count and describe their spatial distribution.',
-  },
-  {
-    id: 'landuse',
-    label: 'Land Use Analysis',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-        <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5" />
-        <path d="M12 2v20M12 2l10 6.5" />
-      </svg>
-    ),
-    prompt: 'Analyze the land use and land cover types in this satellite scene. Identify urban, agricultural, forest, water, and other land cover classes with their approximate proportions.',
-  },
-  {
-    id: 'change',
-    label: 'Detect Changes',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-        <path d="M7 16h10" />
-        <path d="M12 7v9" />
-        <path d="M17 17l5 5" />
-        <path d="M12 7l-5 5" />
-      </svg>
-    ),
-    prompt: 'If this is a bi-temporal pair, describe what changed between the two time periods. Otherwise, suggest what temporal changes might be detectable in this area.',
-  },
+const SuggestedInquiries = [
+  "Did the floodwaters recede between these two dates?",
+  "Highlight all cargo vessels docked in the harbor.",
+  "Show me high-reflectance urban sprawl in this quadrant.",
+  "Auto-describe land cover & spectral characteristics.",
+]
+
+const LoadingStates = [
+  "Aligning optical and SAR channels...",
+  "Checking for temporal changes in vegetation...",
+  "Synthesizing observations...",
+  "Querying BigEarthNet QLoRA domain adapter...",
 ]
 
 export default function ChatPanel({ imageId, disabled }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const endRef = useRef<HTMLDivElement>(null)
+  const [loadingTextIdx, setLoadingTextIdx] = useState(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    let interval: any
+    if (loading) {
+      interval = setInterval(() => {
+        setLoadingTextIdx((prev) => (prev + 1) % LoadingStates.length)
+      }, 1400)
+    } else {
+      setLoadingTextIdx(0)
+    }
+    return () => clearInterval(interval)
+  }, [loading])
 
   const send = async (question: string) => {
     if (!imageId || !question.trim() || loading) return
@@ -96,149 +73,124 @@ export default function ChatPanel({ imageId, disabled }: Props) {
   }
 
   return (
-    <div className="panel-elevated flex flex-col h-[60vh] md:h-[70vh] min-h-[420px] max-h-[700px] overflow-hidden animate-slide-up stagger-2">
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-space-700/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="bg-[#181a20] border border-[#262930] rounded-2xl flex flex-col h-[60vh] md:h-[70vh] min-h-[440px] max-h-[720px] overflow-hidden shadow-2xl backdrop-blur-md">
+      {/* Conversational Header */}
+      <div className="px-5 py-4 border-b border-[#262930] flex items-center justify-between bg-[#121316]/60">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-vegetation-400/15 flex items-center justify-center">
-            <svg className="w-4 h-4 text-vegetation-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
+          <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 font-bold text-xs">
+            AI
           </div>
           <div>
-            <h2 className="font-display text-display-sm font-semibold text-earth-50">Analysis Chat</h2>
-            <p className="text-caption text-earth-400">Ask questions about the loaded satellite scene</p>
+            <h2 className="text-sm font-semibold text-stone-100 flex items-center gap-2">
+              Collaborative Analysis Assistant
+            </h2>
+            <p className="text-xs text-stone-400">
+              {disabled
+                ? 'Ready to analyze. Drop a satellite scene or ask about changes over time.'
+                : 'Active scene loaded. Ask a natural language question or pick a suggested inquiry below.'}
+            </p>
           </div>
         </div>
         {imageId && (
-          <span className="meta-badge meta-badge-primary font-mono text-xs">
-            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
-              <polyline points="14 2 14 8 20 8" />
-            </svg>
+          <span className="text-[11px] font-mono px-2 py-1 rounded-md bg-stone-900 text-amber-300 border border-amber-900/40">
             {imageId}
           </span>
         )}
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4" role="log" aria-live="polite" aria-label="Conversation">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 font-sans" role="log">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-earth-400/60 px-8">
-            <svg className="w-16 h-16 mb-4 text-space-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
-            </svg>
-            <p className="text-body-lg text-center text-balance">No conversation yet</p>
-            <p className="text-body-sm text-center mt-1">Upload an image, then ask a question or use a quick action below</p>
+          <div className="flex flex-col items-center justify-center h-full text-stone-400 px-6 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-[#1f232b] border border-[#262930] flex items-center justify-center text-amber-400 text-xl shadow">
+              💡
+            </div>
+            <p className="text-sm font-medium text-stone-200">How can I assist your satellite analysis today?</p>
+            <p className="text-xs text-stone-400 max-w-md">
+              Upload an optical or SAR GeoTIFF image, then choose from the suggested prompts below or ask a custom question.
+            </p>
           </div>
         )}
         {messages.map((m, i) => (
-          <div key={i} className={`flex gap-3 animate-fade-in stagger-${Math.min((i % 4) + 1, 4)} ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
+          <div key={i} className={`flex gap-3 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
             <div
-              className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+              className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
                 m.role === 'user'
-                  ? 'bg-vegetation-400/20 text-vegetation-400'
-                  : 'bg-space-700 text-earth-400'
+                  ? 'bg-amber-500 text-stone-950'
+                  : 'bg-[#1f232b] text-stone-300 border border-[#262930]'
               }`}
-              aria-hidden="true"
             >
-              {m.role === 'user' ? (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <rect x="2" y="3" width="20" height="14" rx="2" />
-                  <path d="M8 21h8M12 17v-4" />
-                </svg>
-              )}
+              {m.role === 'user' ? 'You' : 'SQ'}
             </div>
-            <div className={`flex-1 min-w-0 ${m.role === 'user' ? 'text-right' : ''}`}>
-              <div className={`text-caption font-medium mb-1 ${m.role === 'user' ? 'text-vegetation-400' : 'text-thermal-400'}`}>
-                {m.role === 'user' ? 'You' : 'SatQuery AI'}
-              </div>
-              <div className={`prose prose-invert prose-sm max-w-none ${m.role === 'user' ? 'msg-user' : 'msg-assistant'}`}>
+            <div className={`max-w-[85%] ${m.role === 'user' ? 'text-right' : ''}`}>
+              <div
+                className={
+                  m.role === 'user'
+                    ? 'inline-block bg-amber-500/10 border border-amber-500/30 text-amber-200 rounded-2xl rounded-tr-xs p-3 text-sm text-left shadow-sm'
+                    : 'inline-block bg-[#1f232b] border border-[#262930] text-stone-200 rounded-2xl rounded-tl-xs p-3.5 text-sm text-left shadow-sm leading-relaxed'
+                }
+              >
                 <p className="whitespace-pre-wrap">{m.content}</p>
               </div>
               {m.latency != null && (
-                <div className="msg-meta mt-1 flex items-center justify-end gap-1">
-                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                  </svg>
-                  {m.latency} ms
+                <div className="mt-1 text-[10px] font-mono text-stone-500 flex items-center justify-end gap-1">
+                  <span>{m.latency} ms</span>
                 </div>
               )}
             </div>
           </div>
         ))}
+
+        {/* Conversational Progressive Loading State */}
         {loading && (
-          <div className="flex gap-3 animate-fade-in">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-space-700 flex items-center justify-center text-earth-400" aria-hidden="true">
-              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
-                <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
-              </svg>
-            </div>
-            <div className="flex-1">
-              <div className="flex gap-2">
-                <div className="skeleton h-4 w-1/4 rounded" />
-                <div className="skeleton h-4 w-1/3 rounded" />
-              </div>
-              <div className="mt-2 flex gap-2">
-                <div className="skeleton h-4 w-1/2 rounded" />
-              </div>
-              <div className="mt-2 flex gap-2">
-                <div className="skeleton h-4 w-3/4 rounded" />
-              </div>
-            </div>
+          <div className="flex gap-3 items-center bg-[#1f232b] border border-amber-500/30 rounded-2xl p-3 text-xs text-amber-300 max-w-fit shadow animate-pulse">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            <span>{LoadingStates[loadingTextIdx]}</span>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Quick Actions */}
-      <div className="px-4 pb-4 border-t border-space-700/50">
-        <div className="flex flex-wrap gap-2 mb-3">
-          {QuickActions.map((action) => (
+      {/* Suggested Inquiries (Prompt Pills) */}
+      <div className="px-4 py-2 border-t border-[#262930] bg-[#121316]/40">
+        <span className="text-[11px] font-medium text-stone-400 block mb-1.5 uppercase tracking-wider">
+          Suggested Inquiries
+        </span>
+        <div className="flex flex-wrap gap-1.5">
+          {SuggestedInquiries.map((promptText, idx) => (
             <button
-              key={action.id}
+              key={idx}
               type="button"
-              onClick={() => send(action.prompt)}
+              onClick={() => send(promptText)}
               disabled={disabled || loading}
-              className="action-chip"
-              aria-label={action.label}
+              className="text-xs px-2.5 py-1 rounded-full bg-[#1f232b] hover:bg-amber-500/20 hover:border-amber-500/40 text-stone-300 hover:text-amber-200 border border-[#262930] transition-all disabled:opacity-40 disabled:cursor-not-allowed text-left"
             >
-              <span className="w-4 h-4 flex items-center justify-center" aria-hidden="true">{action.icon}</span>
-              {action.label}
+              "{promptText}"
             </button>
           ))}
         </div>
       </div>
 
       {/* Input Form */}
-      <form onSubmit={handleSubmit} className="px-4 pb-4 pt-2 border-t border-space-700/50">
+      <form onSubmit={handleSubmit} className="p-3 border-t border-[#262930] bg-[#121316]/80">
         <div className="flex gap-2">
           <input
             type="text"
-            className="input-field flex-1"
-            placeholder={disabled ? 'Upload an image first...' : 'Ask about the satellite imagery...'}
+            className="flex-1 bg-[#0d1117] border border-[#262930] rounded-xl px-4 py-2.5 text-sm text-stone-100 placeholder-stone-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/30 disabled:opacity-50"
+            placeholder={disabled ? 'Upload a satellite scene first...' : 'Ask a question or type a query...'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             disabled={disabled || loading}
-            aria-label="Ask a question about the satellite image"
           />
           <button
             type="submit"
-            className="btn-primary whitespace-nowrap"
+            className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-semibold px-4 py-2.5 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-1 text-sm shadow"
             disabled={disabled || loading || !input.trim()}
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path d="M22 2L11 13" />
-              <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+            <span>Ask</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
             </svg>
-            <span className="hidden sm:inline">Send</span>
           </button>
         </div>
       </form>

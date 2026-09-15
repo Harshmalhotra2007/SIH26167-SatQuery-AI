@@ -10,16 +10,18 @@
   }
 
   * {
-    @apply border-space-700;
+    border-color: #262930;
   }
 
   html {
-    @apply scroll-smooth;
+    scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-space-950 text-earth-50 font-ui antialiased;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    background-color: #0d1117;
+    color: #e7e7e9;
+    font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 
   ::-webkit-scrollbar {
@@ -27,162 +29,57 @@
     height: 8px;
   }
   ::-webkit-scrollbar-track {
-    @apply bg-space-900;
+    background-color: #121316;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-space-700 rounded-full;
+    background-color: #262930;
+    border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-space-600;
-  }
-  ::-webkit-scrollbar-corner {
-    @apply bg-space-900;
+    background-color: #343842;
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-vegetation-400 ring-offset-2 ring-offset-space-950;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-      animation-duration: 0.01ms !important;
-      animation-iteration-count: 1 !important;
-      transition-duration: 0.01ms !important;
-      scroll-behavior: auto !important;
-    }
+    outline: none;
+    box-shadow: 0 0 0 2px #f59e0b;
   }
 }
 
 @layer components {
   .panel {
-    @apply bg-space-800/80 backdrop-blur-sm rounded-panel border border-space-700 shadow-panel;
+    background-color: rgba(24, 26, 32, 0.9);
+    backdrop-filter: blur(12px);
+    border-radius: 1.5rem;
+    border: 1px solid #262930;
+    box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.5);
   }
 
-  .panel-elevated {
-    @apply bg-space-800/95 backdrop-blur-md rounded-panel border border-space-700/50 shadow-elevated;
+  .btn-amber {
+    background-color: #f59e0b;
+    color: #0d1117;
+    font-weight: 600;
+    border-radius: 0.75rem;
+    padding: 0.625rem 1.25rem;
+    transition: all 150ms ease;
+  }
+  .btn-amber:hover {
+    background-color: #fbbf24;
   }
 
-  .image-viewer {
-    @apply relative bg-space-900 rounded-card overflow-hidden border border-space-700;
-    background-image: theme('backgroundImage.grid-pattern');
-    background-size: 48px 48px;
+  .msg-assistant-bubble {
+    background-color: #1f232b;
+    color: #e7e7e9;
+    border: 1px solid #262930;
+    border-radius: 1.25rem;
+    border-top-left-radius: 0.25rem;
   }
 
-  .image-viewer::before {
-    content: '';
-    @apply absolute inset-0 bg-radial-glow pointer-events-none;
-  }
-
-  .drop-zone {
-    @apply relative border-2 border-dashed rounded-card p-8 text-center transition-all duration-200;
-    @apply border-space-700/80 bg-space-900/50 hover:border-space-600 hover:bg-space-900/80;
-  }
-
-  .drop-zone.active {
-    @apply border-vegetation-400 bg-vegetation-400/10;
-  }
-
-  .drop-zone.drag-over {
-    @apply border-vegetation-400 bg-vegetation-400/20 scale-[0.99];
-  }
-
-  .btn-primary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
-           bg-vegetation-400 text-space-950 hover:bg-vegetation-500 active:bg-vegetation-600
-           disabled:opacity-50 disabled:cursor-not-allowed
-           transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vegetation-400 focus-visible:ring-offset-2 focus-visible:ring-offset-space-950;
-  }
-
-  .btn-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
-           bg-space-700 text-earth-50 hover:bg-space-600 active:bg-space-500
-           disabled:opacity-50 disabled:cursor-not-allowed
-           transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-earth-400 focus-visible:ring-offset-2 focus-visible:ring-offset-space-950;
-  }
-
-  .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium text-sm
-           bg-transparent text-earth-300 hover:bg-space-700 hover:text-earth-50 active:bg-space-600
-           disabled:opacity-50 disabled:cursor-not-allowed
-           transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-earth-400 focus-visible:ring-offset-2 focus-visible:ring-offset-space-950;
-  }
-
-  .btn-thermal {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm
-           bg-thermal-400 text-space-950 hover:bg-thermal-500 active:bg-thermal-600
-           disabled:opacity-50 disabled:cursor-not-allowed
-           transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-thermal-400 focus-visible:ring-offset-2 focus-visible:ring-offset-space-950;
-  }
-
-  .tab-btn {
-    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vegetation-400 focus-visible:ring-offset-2 focus-visible:ring-offset-space-950;
-  }
-
-  .tab-btn-active {
-    @apply bg-vegetation-400 text-space-950 shadow-lg shadow-vegetation-400/20;
-  }
-
-  .tab-btn-inactive {
-    @apply bg-space-800 text-earth-300 hover:bg-space-700 hover:text-earth-50;
-  }
-
-  .action-chip {
-    @apply inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium
-           bg-space-800/80 text-earth-300 hover:bg-space-700 hover:text-earth-50
-           border border-space-700/50 transition-all duration-150
-           disabled:opacity-40 disabled:cursor-not-allowed;
-  }
-
-  .input-field {
-    @apply w-full px-4 py-3 rounded-lg bg-space-900 border border-space-700
-           text-earth-50 placeholder-earth-400/50
-           focus:outline-none focus:border-vegetation-400 focus:ring-2 focus:ring-vegetation-400/20
-           disabled:opacity-50 disabled:cursor-not-allowed
-           transition-all duration-150;
-  }
-
-  .meta-badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-caption font-medium
-           bg-space-700/50 text-earth-400 border border-space-700/50;
-  }
-
-  .meta-badge-primary {
-    @apply bg-vegetation-400/15 text-vegetation-400 border-vegetation-400/30;
-  }
-
-  .meta-badge-thermal {
-    @apply bg-thermal-400/15 text-thermal-400 border-thermal-400/30;
-  }
-
-  .msg-user {
-    @apply text-earth-100;
-  }
-
-  .msg-assistant {
-    @apply text-earth-200;
-  }
-
-  .msg-meta {
-    @apply text-caption text-earth-400/80 font-mono;
-  }
-
-  .legend-item {
-    @apply flex items-center gap-2 text-body-sm text-earth-300;
-  }
-
-  .legend-swatch {
-    @apply w-3 h-3 rounded border border-space-600;
-  }
-
-  .spinner {
-    @apply animate-spin text-vegetation-400;
-  }
-
-  .skeleton {
-    @apply bg-space-700/50 animate-pulse rounded;
+  .msg-user-bubble {
+    background-color: rgba(245, 158, 11, 0.12);
+    color: #fef3c7;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 1.25rem;
+    border-top-right-radius: 0.25rem;
   }
 }
 
