@@ -2,87 +2,74 @@
 train/dataset_loader.py
 Dataset loader & instruction formatter for BigEarthNet.txt (BIFOLD-BigEarthNetv2-0/BigEarthNet.txt).
 Reads remote sensing image-text pairs in streaming mode and converts them into vision-language instruction tuning format.
+REQUIRES: BigEarthNet.txt dataset with actual image patches.
 """
 
 import logging
 from typing import Iterator, Dict, Any, List
 from PIL import Image
-import numpy as np
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
 BIGEARTHNET_REPO = "BIFOLD-BigEarthNetv2-0/BigEarthNet.txt"
 
-CATEGORIES_19 = [
-    "Urban fabric", "Industrial or commercial units", "Arable land", "Permanent crops",
-    "Pastures", "Complex cultivation patterns", "Land principally occupied by agriculture",
-    "Agro-forestry areas", "Broad-leaved forest", "Coniferous forest", "Mixed forest",
-    "Natural grassland", "Moors and heathland", "Sclerophyllous vegetation", "Transitional woodland-shrub",
-    "Beaches, dunes, sands", "Inland wetlands", "Coastal wetlands", "Water bodies"
-]
-
 def format_bigearthnet_sample(sample: Dict[str, Any]) -> Dict[str, Any]:
     """
     Formats a raw BigEarthNet.txt sample into an instruction-tuning format suitable for VLM SFT.
+    BigEarthNet.txt is text-only - images must be joined with original BigEarthNet dataset.
     """
-    labels = sample.get("labels", sample.get("label", []))
-    if isinstance(labels, list):
-        label_str = ", ".join(str(l) for l in labels)
-    else:
-        label_str = str(labels)
-    
-    # Extract images if present
-    img_opt = sample.get("optical_image", sample.get("image", None))
-    img_sar = sample.get("sar_image", None)
-    
+    # BigEarthNet.txt has: input (question), output (answer), category, type, country, season, etc.
+    question = sample.get("input", "Describe this satellite image.")
+    answer = sample.get("output", "Unknown")
+    category = sample.get("category", "unknown")
+    country = sample.get("country", "unknown")
+    season = sample.get("season", "unknown")
+
     instruction = (
-        "Analyze this co-registered remote sensing patch (Sentinel-1 SAR / Sentinel-2 Optical) "
-        "and list the predominant land cover classes and surface characteristics."
+        f"Analyze this satellite image patch from {country} ({season}). "
+        f"Question: {question}"
     )
-    
-    response = (
-        f"The remote sensing imagery patch shows the following land cover classifications: {label_str}. "
-        f"The optical spectral signatures and SAR backscatter characteristics confirm multi-spectral land cover activity."
-    )
-    
+
+    response = answer
+
     return {
         "instruction": instruction,
-        "response": response,
-        "labels": labels,
-        "optical_image": img_opt,
-        "sar_image": img_sar
+        "answer": response,
+        "category": category,
+        "country": country,
+        "season": season,
+        "source": BIGEARTHNET_REPO
     }
 
 def stream_bigearthnet_dataset(limit: int = 100) -> List[Dict[str, Any]]:
     """
-    Stream samples from BigEarthNet.txt dataset.
+    Stream samples from BigEarthNet.txt dataset (text annotations only).
+    NOTE: Images must be loaded separately from original BigEarthNet dataset.
     """
-    logger.info(f"Streaming up to {limit} samples from {BIGEARTHNET_REPO}...")
+    logger.info(f"Streaming up to {limit} text samples from {BIGEARTHNET_REPO}...")
     samples = []
     try:
         from datasets import load_dataset
-        ds = load_dataset(BIGEARTHNET_REPO, streaming=True, split="train")
+        # Note: BigEarthNet.txt is text-only, uses 'all_data' split
+        ds = load_dataset(BIGEARTHNET_REPO, streaming=True, split="all_data")
         for i, raw_sample in enumerate(ds):
             if i >= limit:
                 break
             formatted = format_bigearthnet_sample(raw_sample)
             samples.append(formatted)
-        logger.info(f"Successfully formatted {len(samples)} BigEarthNet.txt samples.")
+        logger.info(f"Successfully formatted {len(samples)} BigEarthNet.txt text samples.")
+        logger.info("NOTE: Image patches require joining with original BigEarthNet dataset.")
     except Exception as e:
-        logger.warning(f"Could not stream live dataset ({e}). Generating synthetic BigEarthNet.txt samples for pipeline validation...")
-        # Synthetic fallback for offline validation
-        for i in range(limit):
-            synthetic_img = Image.fromarray(np.random.randint(0, 255, (128, 128, 3), dtype=np.uint8))
-            samples.append({
-                "instruction": "Analyze this Sentinel remote sensing patch for land cover classification.",
-                "response": "The patch displays Arable land, Coniferous forest, and Water bodies.",
-                "labels": ["Arable land", "Coniferous forest", "Water bodies"],
-                "optical_image": synthetic_img,
-                "sar_image": synthetic_img
-            })
+        logger.error(f"Failed to load BigEarthNet.txt dataset: {e}")
+        logger.error("Ensure you have network access to HuggingFace Hub.")
+        raise
     return samples
 
 if __name__ == "__main__":
     data = stream_bigearthnet_dataset(limit=5)
-    print(f"Sample formatted output: {data[0]['instruction']} -> {data[0]['response']}")
+    print(f"\nSample formatted output:")
+    for item in data:
+        print(f"  Q: {item['instruction'][:80]}...")
+        print(f"  A: {item['answer'][:80]}...")
+        print(f"  Category: {item['category']}, Country: {item['country']}")

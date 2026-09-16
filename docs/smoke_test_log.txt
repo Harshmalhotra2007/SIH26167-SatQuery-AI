@@ -1,0 +1,54 @@
+=== Task 2: Real QLoRA Fine-Tuning (Qwen2-VL-2B-Instruct) ===
+CUDA Available: True | Use BF16: True | Compute Dtype: torch.bfloat16
+Reading samples from data/train_samples.jsonl...
+Loaded 2885 samples (after 4x captioning oversampling).
+Smoke-test mode active: limited dataset to 20 samples.
+Loading base model 'Qwen/Qwen2-VL-2B-Instruct' in 4-bit NF4 quantization...
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+The image processor of type `Qwen2VLImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. 
+Downloading (incomplete total...): 0.00B [00:00, ?B/s]
+Fetching 2 files: 100%|████████████████████████| 2/2 [00:00<00:00, 23172.95it/s]
+Download complete: : 0.00B [00:00, ?B/s]              
+Loading weights: 100%|█| 729/729 [00:01<00:00, 425.07it/s, Materializing param=m
+trainable params: 9,232,384 || all params: 2,218,217,984 || trainable%: 0.4162
+Starting QLoRA training for 30 steps...
+  0%|                                                    | 0/30 [00:00<?, ?it/s]`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`...
+{'loss': '3.074', 'grad_norm': '11.47', 'learning_rate': '0', 'epoch': '0.2'}   
+{'loss': '1.987', 'grad_norm': '0.9682', 'learning_rate': '0.0002', 'epoch': '0.4'}
+{'loss': '1.861', 'grad_norm': '0.7098', 'learning_rate': '0.0001994', 'epoch': '0.6'}
+{'loss': '1.304', 'grad_norm': '7.837', 'learning_rate': '0.0001977', 'epoch': '0.8'}
+{'loss': '1.682', 'grad_norm': '0.7063', 'learning_rate': '0.0001948', 'epoch': '1'}
+{'loss': '1.58', 'grad_norm': '0.7356', 'learning_rate': '0.0001908', 'epoch': '1.2'}
+{'loss': '1.49', 'grad_norm': '0.7749', 'learning_rate': '0.0001857', 'epoch': '1.4'}
+{'loss': '1.354', 'grad_norm': '0.8083', 'learning_rate': '0.0001796', 'epoch': '1.6'}
+{'loss': '0.4331', 'grad_norm': '2.965', 'learning_rate': '0.0001726', 'epoch': '1.8'}
+{'loss': '0.5128', 'grad_norm': '4.812', 'learning_rate': '0.0001647', 'epoch': '2'}
+{'loss': '1.067', 'grad_norm': '0.8875', 'learning_rate': '0.0001561', 'epoch': '2.2'}
+{'loss': '0.2264', 'grad_norm': '1.741', 'learning_rate': '0.0001468', 'epoch': '2.4'}
+{'loss': '0.1924', 'grad_norm': '1.992', 'learning_rate': '0.000137', 'epoch': '2.6'}
+{'loss': '0.8461', 'grad_norm': '0.942', 'learning_rate': '0.0001268', 'epoch': '2.8'}
+{'loss': '0.778', 'grad_norm': '0.9786', 'learning_rate': '0.0001162', 'epoch': '3'}
+{'loss': '0.6936', 'grad_norm': '1.031', 'learning_rate': '0.0001054', 'epoch': '3.2'}
+{'loss': '0.2301', 'grad_norm': '2.369', 'learning_rate': '9.459e-05', 'epoch': '3.4'}
+{'loss': '0.344', 'grad_norm': '2.451', 'learning_rate': '8.382e-05', 'epoch': '3.6'}
+{'loss': '0.5405', 'grad_norm': '1.514', 'learning_rate': '7.325e-05', 'epoch': '3.8'}
+{'loss': '0.4918', 'grad_norm': '1.422', 'learning_rate': '6.299e-05', 'epoch': '4'}
+{'loss': '0.4426', 'grad_norm': '1.136', 'learning_rate': '5.316e-05', 'epoch': '4.2'}
+{'loss': '0.3983', 'grad_norm': '1.071', 'learning_rate': '4.388e-05', 'epoch': '4.4'}
+{'loss': '0.2198', 'grad_norm': '3.347', 'learning_rate': '3.526e-05', 'epoch': '4.6'}
+{'loss': '0.3397', 'grad_norm': '1.051', 'learning_rate': '2.74e-05', 'epoch': '4.8'}
+{'loss': '0.3222', 'grad_norm': '1.052', 'learning_rate': '2.039e-05', 'epoch': '5'}
+{'loss': '0.1994', 'grad_norm': '1.882', 'learning_rate': '1.431e-05', 'epoch': '5.2'}
+{'loss': '0.2944', 'grad_norm': '1.051', 'learning_rate': '9.242e-06', 'epoch': '5.4'}
+{'loss': '0.2895', 'grad_norm': '1.056', 'learning_rate': '5.235e-06', 'epoch': '5.6'}
+{'loss': '0.1758', 'grad_norm': '1.938', 'learning_rate': '2.338e-06', 'epoch': '5.8'}
+{'loss': '0.2807', 'grad_norm': '1.025', 'learning_rate': '5.862e-07', 'epoch': '6'}
+{'train_runtime': '164.2', 'train_samples_per_second': '0.731', 'train_steps_per_second': '0.183', 'train_loss': '0.7884', 'epoch': '6'}
+100%|███████████████████████████████████████████| 30/30 [02:44<00:00,  5.47s/it]
+
+Training Loss Trajectory (30 logged steps): [3.0743250846862793, 1.9873778820037842, 1.861153483390808, 1.303792953491211, 1.6823664903640747, 1.580353021621704, 1.4898234605789185, 1.354459285736084, 0.4331011176109314, 0.5128094553947449, 1.0669844150543213, 0.2263883501291275, 0.19240617752075195, 0.8460883498191833, 0.7779757976531982, 0.6936468482017517, 0.23011651635169983, 0.3439514636993408, 0.5404842495918274, 0.49176642298698425, 0.4426249861717224, 0.39831048250198364, 0.21977674961090088, 0.3396504819393158, 0.3221817910671234, 0.19935323297977448, 0.29443028569221497, 0.2894994020462036, 0.17575524747371674, 0.2807272970676422]
+First-third mean loss: 1.5280 | Last-third mean loss: 0.2962
+Saving final LoRA adapter to train/checkpoints/final_adapter...
+
+=== Task 2 Complete ===
+LoRA adapter successfully saved to: train/checkpoints/final_adapter

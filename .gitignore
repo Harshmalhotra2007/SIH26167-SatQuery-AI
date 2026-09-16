@@ -26,11 +26,13 @@ tmp_uploads/
 .claude/
 .codex/
 .opencode/
-satquery-ai-starter.zip
 
-# Model weights (large — don't commit)
+# Model weights & datasets (large — don't commit)
 *.safetensors
 *.bin
 *.pt
+*.zip
+data/
+train/checkpoints/final_adapter/
 
 .vercel

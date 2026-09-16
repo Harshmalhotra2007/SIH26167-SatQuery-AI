@@ -46,14 +46,13 @@ class MultimodalCollator:
             prompt_text = self.processor.apply_chat_template(
                 f["messages"], tokenize=False, add_generation_prompt=True
             )
-            prompt_ids = self.processor.tokenizer(
-                prompt_text, add_special_tokens=False
-            )["input_ids"]
-            n = len(prompt_ids)
-            assert batch["input_ids"][i, :n].tolist() == prompt_ids, (
-                f"Prompt prefix mismatch for sample {i} — "
-                "tokenizer non-determinism detected"
+            prompt_inputs = self.processor(
+                text=prompt_text,
+                images=[f["image"]],
+                return_tensors="pt",
+                padding=False,
             )
+            n = prompt_inputs["input_ids"].shape[1]
             labels[i, :n] = -100
 
         batch["labels"] = labels
