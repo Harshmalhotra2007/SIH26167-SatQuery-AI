@@ -30,6 +30,8 @@ from transformers import (
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from train.collator import MultimodalCollator
 
+PROMPT_PREFIX = "Answer the following question about this satellite image in as few words as possible. "
+
 
 class BigEarthDataset(Dataset):
     """
@@ -48,7 +50,7 @@ class BigEarthDataset(Dataset):
                     "role": "user",
                     "content": [
                         {"type": "image"},
-                        {"type": "text", "text": s["question"]}
+                        {"type": "text", "text": PROMPT_PREFIX + s["question"]}
                     ]
                 }],
                 "answer": s["answer"],
