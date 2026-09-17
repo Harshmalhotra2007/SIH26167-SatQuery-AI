@@ -1,76 +1,151 @@
-# Architecture — SatQuery AI (ISRO SIH26167)
+# Architecture - SatQuery AI (ISRO SIH26167)
 
 ## High-Level System Architecture
 
+SatQuery AI is a three-tier web application:
+
+1. **Frontend (React + Vite + Tailwind)** - interactive UI for upload, query, and result display
+2. **Backend (FastAPI)** - routing, image handling, VLM dispatch, execution tracing
+3. **VLM Backend** - Gemini 1.5 Flash by default; local Qwen2-VL-2B with the BigEarthNet LoRA adapter as an offline alternative
+
 ```
-                       ┌─────────────────────────────────────────┐
-                       │          React Frontend (Vite)          │
-                       │     (Warm Slate + Human Amber Theme)    │
-                       │                                         │
-                       │  ImageUpload        CrossModalUpload    │
-                       │  ChangeDetection    ExecutionTracePanel │
-                       │  ChatPanel (Suggested Prompt Pills)     │
-                       └────────────────────┬────────────────────┘
-                                            │ REST (JSON / Multipart) — see API_CONTRACT.md
-                                            ▼
-                       ┌─────────────────────────────────────────┐
-                       │             FastAPI Backend             │
-                       │                                         │
-                       │  routers/                               │
-                       │    upload.py     query.py               │
-                       │    change.py     report.py              │
-                       │                                         │
-                       │  services/                              │
-                       │    image_service.py (GeoTIFF / tifffile)│
-                       │    vlm_service.py   (Trace & Confidence)│
-                       │    change_service.py (Spatial diff)     │
-                       └───────────┬─────────────────┬───────────┘
-                                   │                 │
-                      ┌────────────┘                 └────────────┐
-                      ▼                                           ▼
-          ┌───────────────────────┐                   ┌────────────────────────┐
-          │  BigEarthNet QLoRA    │                   │   Gemini 1.5 Flash     │
-          │  Adapted Qwen2-VL-2B  │                   │   VLM Cloud Engine     │
-          │                       │                   │                        │
-          │  (Local GPU / RTX 4050│                   │   (Serverless Vercel   │
-          │   4-bit Quantization) │                   │    API Fallback)       │
-          └───────────┬───────────┘                   └────────────────────────┘
-                      │
-                      ▼
-          ┌───────────────────────┐
-          │   eval/ Benchmarks    │
-          │                       │
-          │   CDVQA (90.0% Acc)   │
-          │   VRSBench (86.7%)    │
-          │   RSVQA-LRBEN (93.3%) │
-          └───────────────────────┘
++------------------+        +---------------------+        +--------------------+
+|  User (browser)  | <----> |  FastAPI backend    | <----> |  VLM backend       |
+|  React frontend  |  HTTP  |  /upload /query     |  SDK   |  Gemini 1.5 Flash  |
++------------------+        |  /change /report    |        |  (or local Qwen2)  |
+                            +---------------------+        +--------------------+
+                                     |
+                                     v
+                            +---------------------+
+                            |  Static files       |
+                            |  (uploads, diffs)   |
+                            +---------------------+
 ```
+
+---
 
 ## Component Responsibilities
 
-**Frontend (React + TypeScript + Tailwind CSS)**
-- **Tabs:** Single-Image VQA / Captioning, Cross-Modal (Optical + SAR), and Multitemporal Change-VQA.
-- **Components:** [ImageUpload.tsx](file:///c:/Code/Hackathon%20SIH26167/frontend/src/components/ImageUpload.tsx), [CrossModalUpload.tsx](file:///c:/Code/Hackathon%20SIH26167/frontend/src/components/CrossModalUpload.tsx), [ChangeDetection.tsx](file:///c:/Code/Hackathon%20SIH26167/frontend/src/components/ChangeDetection.tsx), [ChatPanel.tsx](file:///c:/Code/Hackathon%20SIH26167/frontend/src/components/ChatPanel.tsx), and [ExecutionTracePanel.tsx](file:///c:/Code/Hackathon%20SIH26167/frontend/src/components/ExecutionTracePanel.tsx).
-- **Design System:** Warm dark slate canvas (`#0d1117`), stone card panels (`#181a20`), warm human amber accents (`#f59e0b`), and paper-like chat bubbles (`#1f232b`).
+### Backend Routers (backend/app/routers/)
 
-**Backend (FastAPI)**
-- `image_service.py` — GeoTIFF (`.tif`/`.tiff`) array reader with `tifffile` and multi-band (SAR / Optical) percentile normalization.
-- `vlm_service.py` — Single VQA interface supporting single-image queries, cross-modal optical+SAR reasoning (`ask_cross_modal`), Change-VQA narratives (`ask_change_vqa`), token confidence estimation, and structured execution trace generation.
-- `change_service.py` — Bi-temporal image alignment, SSIM contour diffing, and Change-VQA narrative integration.
-- `routers/report.py` — `/api/report/download` endpoint generating structured JSON audit execution reports.
+| Router | Endpoints | Purpose |
+|---|---|---|
+| upload.py | POST /upload | Accepts GeoTIFF/TIFF/PNG/JPEG, saves to disk, returns image_id |
+| query.py | POST /query, POST /query/cross-modal | Single-image VQA and optical+SAR joint analysis |
+| change.py | POST /change | Bi-temporal diff and change VQA |
+| report.py | POST /report/download | Exports execution audit summaries as JSON |
 
-**Adaptation & Benchmark Pipelines (`train/` & `eval/`)**
-- `train/inspect_all_schemas.py` — Schema inspector probing `BigEarthNet.txt`, `CDVQA`, and `VRSBench`.
-- `train/dataset_loader.py` — Streaming loader for `BIFOLD-BigEarthNetv2-0/BigEarthNet.txt` (S1 SAR & S2 Optical pairs).
-- `train/train_qlora.py` — QLoRA 4-bit fine-tuning engine targeting `Qwen2-VL-2B-Instruct`.
-- `eval/` — Evaluation suite computing quantitative accuracy across `CDVQA`, `VRSBench`, and `RSVQA-LRBEN`.
+### Backend Services (backend/app/services/)
+
+| Service | Purpose |
+|---|---|
+| image_service.py | Loads GeoTIFF (via rasterio), converts multi-band to RGB, normalizes per-band |
+| vlm_service.py | Dispatches to Gemini 1.5 Flash; falls back to local Qwen2-VL-2B if cloud is unavailable. Labels the responding model honestly. |
+| change_service.py | OpenCV-based spatial diff and change mask generation |
+
+### Training Pipeline (train/)
+
+The fine-tuning pipeline is separate from the deployed backend. It runs offline on Kaggle T4 x2 GPUs.
+
+```
+data/train_samples.jsonl   --->   train/train_qlora.py   --->   train/checkpoints/final_adapter/
+   (2441 Q&A pairs)               (QLoRA 4-bit SFT)                (36.9 MB LoRA adapter)
+```
+
+| File | Purpose |
+|---|---|
+| build_dataset.py | Joins BigEarthNet.txt Q&A with Sentinel-2 images by patch_id |
+| collator.py | Multimodal collator for Qwen2-VL chat formatting and label masking |
+| train_qlora.py | QLoRA fine-tuning loop |
+| dataset_loader.py | Streaming loader for BigEarthNet.txt |
+
+Result: loss reduced from 1.87 to 0.20 over 400 optimizer steps. Full report in docs/ADAPTATION.md.
+
+### Evaluation Pipeline (eval/)
+
+| File | Benchmark | Status |
+|---|---|---|
+| eval_rsvqa.py | RSVQA-LR-2k (2000 samples) | Complete - see docs/ADAPTATION.md |
+
+Result: base Qwen2-VL-2B 43.80%, BigEarthNet-adapted 39.95% (400 steps) / 42.95% (150 steps). Cross-domain transfer does not improve overall RSVQA accuracy; the adapter improves on the open-ended "other" category. Full analysis in docs/ADAPTATION.md.
 
 ---
 
 ## Data Flow for Core Features
 
-1. **VQA / Auto-Captioning:** Frontend → `POST /api/query` → `vlm_service.ask()` → returns answer + confidence + execution trace.
-2. **Cross-Modal Optical + SAR:** Frontend → `POST /api/query/cross-modal` (Optical ID + SAR ID) → `vlm_service.ask_cross_modal()` → returns fused land cover & soil/water analysis + trace.
-3. **Change-VQA & Visual Diff:** Frontend → `POST /api/change` (Image A + Image B + Question) → `change_service.analyze()` → returns spatial overlay + `CDVQA` narrative + trace.
-4. **Execution Audit Report:** Frontend → `POST /api/report/download` → returns downloadable `satquery_execution_report.json`.
+### Single-Image VQA
 
+1. User uploads an image via /upload. Backend stores it and returns image_id.
+2. Frontend sends image_id and question to /query.
+3. Backend loads the image, dispatches to Gemini 1.5 Flash (or local Qwen2-VL-2B on failure).
+4. Response includes the model answer, the model label, and the execution trace.
+5. Frontend displays the answer and trace in the chat panel.
+
+### Cross-Modal Optical + SAR
+
+1. User uploads two images - optical and SAR - via two /upload calls.
+2. Frontend sends both image_ids and the question to /query/cross-modal.
+3. Backend loads both images and passes them to the VLM in a single multi-image prompt.
+4. Response includes the fused analysis and an execution trace listing both loader tools.
+
+### Change VQA
+
+1. User uploads two images of the same area at different times.
+2. Frontend sends both files and the question to /change.
+3. Backend runs the OpenCV diff engine (produces a change mask and change percentage) and separately asks the VLM to describe the change in natural language.
+4. Response includes the diff overlay URL, the model description, the change percentage, and the execution trace.
+
+### Execution Trace
+
+Every /query, /query/cross-modal, and /change response includes an execution_trace object:
+
+- selected_task - which specialist workflow the router chose
+- model_used - actual backend that served the request
+- tools_invoked - list of tools run
+- parameters - task-specific settings
+- execution_time_ms - wall-clock latency
+
+The trace is rendered in the frontend ExecutionTracePanel component and included in the downloadable report.
+
+---
+
+## File Layout
+
+```
+SIH26167-SatQuery-AI/
+  backend/
+    app/
+      routers/
+      services/
+      models/
+    tests/
+    requirements.txt
+  frontend/
+    src/
+      components/
+      api/
+  train/
+    train_qlora.py
+    collator.py
+    build_dataset.py
+    checkpoints/
+      final_adapter/
+  eval/
+    eval_rsvqa.py
+  docs/
+    ADAPTATION.md
+    API_CONTRACT.md
+    ARCHITECTURE.md
+    DATASET.md
+    DEMO_SCRIPT.md
+    PROBLEM_STATEMENT.md
+  README.md
+```
+
+---
+
+## What the Adapter Is and Is Not
+
+Is: a LoRA adapter trained on 2,441 BigEarthNet Q&A pairs using QLoRA 4-bit on Qwen2-VL-2B. It is loaded when the local backend is selected. It has been evaluated on RSVQA-LR-2k; results are in docs/ADAPTATION.md.
+
+Is not: the default production backend. Production uses Gemini 1.5 Flash for latency and coverage reasons. The adapter is available as an offline alternative and as the artifact used in the evaluation section of the submission.
