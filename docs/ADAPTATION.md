@@ -1,26 +1,26 @@
-\# Remote-Sensing Adaptation
+# Remote-Sensing Adaptation
 
 
 
-\## Base Model
+## Base Model
 
-Qwen2-VL-2B-Instruct — general vision-language model with no remote-sensing fine-tuning.
+Qwen2-VL-2B-Instruct ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â general vision-language model with no remote-sensing fine-tuning.
 
 
 
-\## Adaptation Dataset
+## Adaptation Dataset
 
 BigEarthNet.txt (Hugging Face: `BIFOLD-BigEarthNetv2-0/BigEarthNet.txt`)
 
-\- 2441 real remote-sensing question-answer pairs joined with Sentinel-2 patches
+- 2441 real remote-sensing question-answer pairs joined with Sentinel-2 patches
 
-\- 1000 Sentinel-2 images (120×120, RGB), matched by `patch\_id`
+- 1000 Sentinel-2 images (120ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â120, RGB), matched by `patch_id`
 
-\- Task distribution: binary VQA (1198), multiple choice (1095), captioning (148, oversampled 4×)
+- Task distribution: binary VQA (1198), multiple choice (1095), captioning (148, oversampled 4ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â)
 
 
 
-\## Fine-Tuning Method
+## Fine-Tuning Method
 
 QLoRA: 4-bit NF4 quantization + LoRA adapters on the LLM attention and MLP layers.
 
@@ -36,7 +36,7 @@ QLoRA: 4-bit NF4 quantization + LoRA adapters on the LLM attention and MLP layer
 
 | LoRA dropout | 0.05 |
 
-| Target modules | q\_proj, k\_proj, v\_proj, o\_proj, gate\_proj, up\_proj, down\_proj |
+| Target modules | q_proj, k_proj, v_proj, o_proj, gate_proj, up_proj, down_proj |
 
 | Trainable parameters | 9,232,384 / 2,218,217,984 (0.42%) |
 
@@ -44,7 +44,7 @@ QLoRA: 4-bit NF4 quantization + LoRA adapters on the LLM attention and MLP layer
 
 | Learning rate | 2e-4, cosine schedule, 3% warmup |
 
-| Effective batch size | 4 (per-device 1 × grad-accum 4) |
+| Effective batch size | 4 (per-device 1 ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â grad-accum 4) |
 
 | Precision | bfloat16 (auto-detected) |
 
@@ -54,43 +54,43 @@ QLoRA: 4-bit NF4 quantization + LoRA adapters on the LLM attention and MLP layer
 
 
 
-\## Training Environment
+## Training Environment
 
-\- Hardware: Kaggle Notebook, GPU T4 x2 (2 × 15 GB VRAM)
+- Hardware: Kaggle Notebook, GPU T4 x2 (2 ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â 15 GB VRAM)
 
-\- Framework: transformers 5.17.0, peft 0.21.0, bitsandbytes 0.50.2, torch 2.10.0+cu128
+- Framework: transformers 5.17.0, peft 0.21.0, bitsandbytes 0.50.2, torch 2.10.0+cu128
 
-\- Runtime: \[fill in when the run completes]
-
-
-
-\## Smoke Test (30 steps, 20 samples)
-
-\- Initial loss: 3.074
-
-\- Final loss: 0.281
-
-\- First-third mean: 1.528
-
-\- Last-third mean: 0.296
-
-\- Loss reduction: 80.6%
+- Runtime: 2,095 seconds (34:54) on Kaggle T4 Ãƒâ€”2
 
 
 
-\## Full Run (400 steps, 2885 samples)
+## Smoke Test (30 steps, 20 samples)
+
+- Initial loss: 3.074
+
+- Final loss: 0.281
+
+- First-third mean: 1.528
+
+- Last-third mean: 0.296
+
+- Loss reduction: 80.6%
+
+
+
+## Full Run (400 steps, 2885 samples)
 
 | Metric | Value |
 |---|---|
 | Max steps | 400 |
-| Training samples | 2885 (2441 base × captioning oversampled 4×) |
+| Training samples | 2885 (2441 base ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â captioning oversampled 4ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â) |
 | Initial loss (step 1) | 2.67 |
 | Final loss (step 400) | 0.18 |
 | First-third mean loss | 0.7482 |
 | Last-third mean loss | 0.3836 |
 | Loss reduction | 48.7% |
-| Runtime | 2,042 seconds (34 minutes) |
-| Hardware | Kaggle Notebook, GPU T4 ×2 |
+| Runtime | 2,095 seconds (34:54) |
+| Hardware | Kaggle Notebook, GPU T4 ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â2 |
 | Trainable parameters | 9,232,384 / 2,218,217,984 (0.42%) |
 | Adapter saved to | `train/checkpoints/final_adapter/` |
 | Adapter size | 36,986,952 bytes |
@@ -99,7 +99,7 @@ All numbers are from a real training run on Kaggle T4 GPUs. Loss trajectory is s
 
 
 
-\## Evidence of Adaptation
+## Evidence of Adaptation
 
 Before/after comparison on benchmark evaluations is presented in the Evaluation section.
 
