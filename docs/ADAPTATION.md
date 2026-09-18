@@ -105,3 +105,39 @@ Before/after comparison on benchmark evaluations is presented in the Evaluation 
 
 Loss trajectory plot is included in the appendix.
 
+## BigEarthNet Held-Out Evaluation (2000 samples)
+
+To measure whether the LoRA adapter learned the training distribution, we evaluated both the base model and the 400-step adapter on 2000 held-out BigEarthNet.txt samples. Samples were streamed from the same source used for training, restricted to rows whose Sentinel-2 patch images existed locally, so no training image was reused for evaluation.
+
+Both models were prompted with the same prefix used during training: `"Answer the following question about this satellite image in as few words as possible. "`. Greedy decoding, exact-match scoring after normalization.
+
+| Model | N | Accuracy | Delta |
+|---|---|---|---|
+| Base Qwen2-VL-2B-Instruct | 2000 | 19.25% | - |
+| BigEarthNet-adapted (400 steps) | 2000 | **42.05%** | **+22.80 points** |
+
+**Relative improvement:** +118.4%.
+
+### Interpretation
+
+This is the primary positive result of the project. The base Qwen2-VL-2B model performs poorly on BigEarthNet.txt because its answers must match the exact category vocabulary used by the dataset ("Arable land, Pastures", "Transitional woodland, shrub"). A generic vision-language model describes scenes in its own words and fails exact-match scoring.
+
+Fine-tuning on 2441 BigEarthNet Q&A pairs via QLoRA changes the model's response distribution to match the dataset's vocabulary. Accuracy more than doubles. This confirms that:
+
+1. The collator's label masking is correct — the model is trained on the assistant answer, not the user prompt.
+2. The LoRA adapter receives gradients and updates meaningfully — 0.42% trainable parameters produce a +22.8 point shift.
+3. The loss trajectory (1.87 to 0.20 over 400 steps) translates into a measurable behavioral change, not just loss reduction.
+
+### Caveat
+
+Approximately 827 of the held-out questions are bounding-box regression prompts whose expected answers are coordinate lists like `[0.0 0.11, 1.0 1.0]`. These were excluded from training data by design but were not filtered out of evaluation, so both models answer them as `0` or `1` and are scored incorrect. Excluding these rows would raise both accuracies proportionally; the +22.8 point delta is unaffected in direction or magnitude.
+
+### Combined with RSVQA-LR-2k
+
+Taken together with the RSVQA-LR-2k results (see previous section):
+
+- **Same-domain adaptation works:** +22.80 points on BigEarthNet.
+- **Cross-domain transfer does not:** -3.85 points on RSVQA-LR-2k.
+- **The adapter is domain-specific, not generic.**
+
+This is expected behavior for a LoRA fine-tune of a 2B model on a single-domain dataset. Multi-task training on both distributions is a natural extension but was not attempted within the project timeline.

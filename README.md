@@ -133,3 +133,9 @@ Start both services and visit `http://localhost:5173`:
 3. Switch to Change Detection tab and upload before/after pairs
 4. Use Cross-Modal tab for Optical+SAR fusion analysis
 5. View agentic execution traces and confidence scores in real-time
+
+**BigEarthNet held-out evaluation** (2000 samples):
+- Base Qwen2-VL-2B-Instruct: 19.25%
+- BigEarthNet-adapted (400 steps): **42.05%** (+22.80 points, +118% relative)
+
+The adapter more than doubles accuracy on the training domain. Combined with the RSVQA-LR-2k results above, this shows that fine-tuning on BigEarthNet works for BigEarthNet-distribution queries but does not transfer to a different remote-sensing VQA benchmark.
