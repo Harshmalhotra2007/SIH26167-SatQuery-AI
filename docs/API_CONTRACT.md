@@ -1,175 +1,54 @@
-# API Contract — SatQuery AI (ISRO SIH26167)
+# API Contract - SatQuery AI (ISRO SIH26167)
 
-Base URL (dev): `http://localhost:8000/api` | Live Vercel: `https://sih26167-satquery-ai.vercel.app/api`
+Base URL (dev): http://localhost:8000/api
+Live: https://sih26167-satquery-ai.vercel.app/api
 
-All responses are JSON. Supported image formats: **GeoTIFF (`.tif`, `.tiff`)**, JPEG, PNG, WEBP.
+Supported formats: GeoTIFF (.tif, .tiff), JPEG, PNG, WEBP. All responses are JSON.
 
----
+Backend note. The deployed API serves Gemini 1.5 Flash. The BigEarthNet-adapted LoRA adapter (train/checkpoints/final_adapter/) is used for offline evaluation and is available as an alternative local backend. Response examples are illustrative, not measured benchmarks.
 
-## 1. Upload image (Optical / SAR / GeoTIFF)
+## Endpoints
 
-`POST /upload`
-
-**Request:** `multipart/form-data`
-| Field | Type | Notes |
+| Method | Path | Purpose |
 |---|---|---|
-| `file` | file | Optical / SAR / GeoTIFF (`.tif`, `.tiff`, `.jpg`, `.png`) |
+| POST | /upload | Upload image (GeoTIFF/PNG/JPEG). Returns image_id. |
+| POST | /query | Single-image VQA. Body: image_id, question. |
+| POST | /query/cross-modal | Optical + SAR joint analysis. Body: optical_image_id, sar_image_id, question. |
+| POST | /change | Bi-temporal change VQA. Multipart: image_before, image_after, question. |
+| POST | /report/download | Export execution trace as JSON. |
+| GET | /health | Returns status, vlm_backend, fallback_available. |
 
-**Response 200**
-```json
-{
-  "image_id": "img_7f3a9c",
-  "filename": "sentinel2_optical.tif",
-  "width": 1024,
-  "height": 768,
-  "image_url": "/static/img_7f3a9c.jpg"
-}
-```
+## Response shape (all endpoints)
 
----
+    {
+      "answer": "<model response>",
+      "model_used": "gemini-1.5-flash",
+      "latency_ms": 1100,
+      "confidence": null,
+      "execution_trace": {
+        "selected_task": "Single-Image VQA",
+        "model_used": "gemini-1.5-flash",
+        "tools_invoked": ["RasterImageLoader", "GeminiVLMService"],
+        "execution_time_ms": 1100
+      }
+    }
 
-## 2. Single-Image VQA & Auto-Captioning
+Note: confidence is null because the backend does not currently expose token-level probabilities.
 
-`POST /query`
+## Error shape
 
-**Request**
-```json
-{
-  "image_id": "img_7f3a9c",
-  "question": "Identify land cover classifications and built-up density."
-}
-```
+    {
+      "error": {
+        "code": "INVALID_IMAGE",
+        "message": "Uploaded file is not a valid image or GeoTIFF."
+      }
+    }
 
-**Response 200**
-```json
-{
-  "answer": "High-resolution optical patch displaying mixed urban and agricultural land cover...",
-  "model_used": "BigEarthNet-QLoRA / Qwen2-VL-2B-Instruct",
-  "latency_ms": 110,
-  "confidence": 0.94,
-  "execution_trace": {
-    "selected_task": "Single-Image VQA / Auto-Caption",
-    "model_used": "BigEarthNet-QLoRA / Qwen2-VL-2B-Instruct",
-    "checkpoint_adapter": "train/checkpoints/BigEarthNet_QLoRA_adapter.pt",
-    "tools_invoked": ["RasterImageLoader", "BigEarthNet_VLM_Adapter"],
-    "parameters": {
-      "quantization": "4-bit NF4",
-      "temperature": 0.2
-    },
-    "confidence_score": 0.94,
-    "execution_time_ms": 110
-  }
-}
-```
+## Error codes
 
----
-
-## 3. Cross-Modal Reasoning (Optical + SAR)
-
-`POST /query/cross-modal`
-
-**Request**
-```json
-{
-  "optical_image_id": "img_opt_123",
-  "sar_image_id": "img_sar_456",
-  "question": "Cross-reference optical surface reflectances and SAR backscatter penetration."
-}
-```
-
-**Response 200**
-```json
-{
-  "answer": "[Cross-Modal Optical+SAR Analysis] Integrated analysis of co-registered Optical and SAR imagery...",
-  "model_used": "BigEarthNet-QLoRA Cross-Modal / Qwen2-VL-2B",
-  "latency_ms": 140,
-  "confidence": 0.92,
-  "execution_trace": {
-    "selected_task": "Cross-Modal Optical + SAR Analysis",
-    "model_used": "BigEarthNet-QLoRA Cross-Modal / Qwen2-VL-2B",
-    "checkpoint_adapter": "train/checkpoints/BigEarthNet_QLoRA_adapter.pt",
-    "tools_invoked": ["OpticalRasterioLoader", "SARDoubleBounceAnalyzer", "CrossModalFusionAdapter"],
-    "confidence_score": 0.92,
-    "execution_time_ms": 140
-  }
-}
-```
-
----
-
-## 4. Change-Based VQA & Spatial Diffing (CDVQA Benchmark)
-
-`POST /change`
-
-**Request:** `multipart/form-data`
-| Field | Type | Notes |
+| Status | Code | Meaning |
 |---|---|---|
-| `image_before` | file | Baseline GeoTIFF/PNG (Date A) |
-| `image_after` | file | Follow-up GeoTIFF/PNG (Date B) |
-| `question` | string | Form string prompt: e.g. "What structural changes occurred between Date 1 and Date 2?" |
-
-**Response 200**
-```json
-{
-  "overlay_image_url": "/static/diffs/diff_a1b2c3.png",
-  "description": "[CDVQA Narrative] Multitemporal comparison between Date A and Date B...",
-  "change_percentage": 14.2,
-  "model_used": "CDVQA-Adapted / Qwen2-VL-2B",
-  "confidence": 0.91,
-  "execution_trace": {
-    "selected_task": "Multitemporal Change-VQA & Visual Diff",
-    "model_used": "CDVQA-Adapted / Qwen2-VL-2B",
-    "checkpoint_adapter": "train/checkpoints/BigEarthNet_QLoRA_adapter.pt",
-    "tools_invoked": ["RasterDiffEngine", "SpatialContourDetector", "CDVQA_VLM_Adapter"],
-    "confidence_score": 0.91,
-    "execution_time_ms": 180
-  }
-}
-```
-
----
-
-## 5. Download Execution Audit Report
-
-`POST /report/download`
-
-**Request**
-```json
-{
-  "task_name": "Cross-Modal Optical + SAR Analysis",
-  "query_or_prompt": "Cross-reference optical and SAR",
-  "model_used": "BigEarthNet-QLoRA",
-  "confidence_score": 0.92,
-  "execution_time_ms": 140,
-  "tools_invoked": ["OpticalRasterioLoader", "SARDoubleBounceAnalyzer"],
-  "output_narrative": "Complementary optical and SAR analysis verified."
-}
-```
-
-**Response 200** (`application/json`, Content-Disposition attachment: `satquery_execution_report.json`)
-
----
-
-## 6. Health check
-
-`GET /health`
-
-**Response 200**
-```json
-{ "status": "ok", "vlm_backend": "BigEarthNet-QLoRA-Standby", "fallback_available": true }
-```
-
----
-
-## Error shape (all endpoints)
-
-**Response 4xx/5xx**
-```json
-{
-  "error": {
-    "code": "INVALID_IMAGE",
-    "message": "Uploaded file is not a valid image or GeoTIFF."
-  }
-}
-```
-
+| 400 | INVALID_IMAGE | Upload is not a valid image or GeoTIFF |
+| 404 | IMAGE_NOT_FOUND | image_id not recognised |
+| 422 | EMPTY_QUESTION | Question string is empty |
+| 503 | VLM_UNAVAILABLE | Both Gemini and local fallback are down |
