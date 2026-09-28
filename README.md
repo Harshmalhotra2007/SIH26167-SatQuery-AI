@@ -6,11 +6,11 @@ Interactive vision-language assistant for multimodal remote sensing image analys
 
 
 
-> \*\*Note:\*\* Earlier versions of this README contained placeholder benchmark numbers that were never measured. Those have been removed. All numbers currently shown are from real model runs on Kaggle T4 GPUs.
+> **Note:** Earlier versions of this README contained placeholder benchmark numbers that were never measured. Those have been removed. All numbers currently shown are from real model runs on Kaggle T4 GPUs.
 
 
 
-\## Status
+## Status
 
 
 
@@ -18,37 +18,37 @@ Interactive vision-language assistant for multimodal remote sensing image analys
 
 |---|---|
 
-| Backend API (FastAPI) with image upload and VQA endpoints | \[done] Implemented |
+| Backend API (FastAPI) with image upload and VQA endpoints | [done] Implemented |
 
-| Frontend (React) with file upload and chat interface | \[done] Implemented |
+| Frontend (React) with file upload and chat interface | [done] Implemented |
 
-| GeoTIFF/TIFF support via rasterio | \[done] Implemented |
+| GeoTIFF/TIFF support via rasterio | [done] Implemented |
 
-| Multimodal collator for Qwen2-VL chat formatting | \[done] Implemented |
+| Multimodal collator for Qwen2-VL chat formatting | [done] Implemented |
 
-| BigEarthNet.txt join (2441 real Q\&A pairs, 1000 Sentinel-2 images) | \[done] Implemented |
+| BigEarthNet.txt join (2441 real Q&A pairs, 1000 Sentinel-2 images) | [done] Implemented |
 
-| QLoRA fine-tuning pipeline for Qwen2-VL-2B | \[done] Implemented |
+| QLoRA fine-tuning pipeline for Qwen2-VL-2B | [done] Implemented |
 
-| Smoke test (30 steps, 80.6% loss reduction) | \[done] Verified |
+| Smoke test (30 steps, 80.6% loss reduction) | [done] Verified |
 
-| Full fine-tune (400 steps, 2885 samples) | \[done] Complete - loss 2.67 to 0.18 |
+| Full fine-tune (400 steps, 2885 samples) | [done] Complete - loss 2.67 to 0.18 |
 
-| BigEarthNet held-out evaluation (2000 samples) | \[done] Complete - see docs/ADAPTATION.md |
+| BigEarthNet held-out evaluation (2000 samples) | [done] Complete - see docs/ADAPTATION.md |
 
-| RSVQA-LR-2k evaluation (2000 samples) | \[done] Complete - see docs/ADAPTATION.md |
+| RSVQA-LR-2k evaluation (2000 samples) | [done] Complete - see docs/ADAPTATION.md |
 
-| Cross-modal (Optical + SAR) reasoning | \[done] Implemented in backend |
+| Cross-modal (Optical + SAR) reasoning | [done] Implemented in backend |
 
-| Change-based VQA | \[done] Implemented in backend |
+| Change-based VQA | [done] Implemented in backend |
 
-| CDVQA evaluation | \[pending] Cross-domain limit documented |
+| CDVQA evaluation | [pending] Cross-domain limit documented |
 
-| VRSBench evaluation | \[pending] Not implemented |
+| VRSBench evaluation | [pending] Not implemented |
 
 
 
-\## Fine-Tuning Results
+## Fine-Tuning Results
 
 
 
@@ -56,31 +56,31 @@ See `docs/ADAPTATION.md` for the full adaptation report.
 
 
 
-\*\*Smoke test\*\* (30 steps, 20 samples):
+**Smoke test** (30 steps, 20 samples):
 
-\- Initial loss: 3.074 to final loss: 0.281
+- Initial loss: 3.074 to final loss: 0.281
 
-\- First-third mean: 1.528 to last-third mean: 0.296
+- First-third mean: 1.528 to last-third mean: 0.296
 
-\- Loss reduction: 80.6%
-
-
-
-\*\*Full fine-tune\*\* (400 steps, 2885 samples):
-
-\- Initial loss: 2.67 to final loss: 0.18
-
-\- First-third mean: 0.7482 to last-third mean: 0.3836
-
-\- Runtime: 34 minutes on Kaggle T4 x2
+- Loss reduction: 80.6%
 
 
 
-\*\*BigEarthNet held-out evaluation\*\* (2000 samples):
+**Full fine-tune** (400 steps, 2885 samples):
 
-\- Base Qwen2-VL-2B-Instruct: 19.25%
+- Initial loss: 2.67 to final loss: 0.18
 
-\- BigEarthNet-adapted (400 steps): 42.05% (+22.80 points, +118% relative)
+- First-third mean: 0.7482 to last-third mean: 0.3836
+
+- Runtime: 34 minutes on Kaggle T4 x2
+
+
+
+**BigEarthNet held-out evaluation** (2000 samples):
+
+- Base Qwen2-VL-2B-Instruct: 19.25%
+
+- BigEarthNet-adapted (400 steps): 42.05% (+22.80 points, +118% relative)
 
 
 
@@ -88,13 +88,13 @@ The adapter more than doubles accuracy on the training domain.
 
 
 
-\*\*RSVQA-LR-2k benchmark\*\* (2000-sample validation split):
+**RSVQA-LR-2k benchmark** (2000-sample validation split):
 
-\- Base Qwen2-VL-2B-Instruct: 43.80%
+- Base Qwen2-VL-2B-Instruct: 43.80%
 
-\- BigEarthNet-adapted (400 steps): 39.95%
+- BigEarthNet-adapted (400 steps): 39.95%
 
-\- BigEarthNet-adapted (150 steps): 42.95%
+- BigEarthNet-adapted (150 steps): 42.95%
 
 
 
@@ -106,39 +106,39 @@ Combined, the two evaluations show that the adapter is domain-specific: it impro
 
 
 
-\## Architecture
+## Architecture
 
 
 
-\- \*\*Backend:\*\* FastAPI, Gemini 1.5 Flash primary, local Qwen2-VL-2B with BigEarthNet LoRA adapter as offline alternative
+- **Backend:** FastAPI, Gemini 1.5 Flash primary, local Qwen2-VL-2B with BigEarthNet LoRA adapter as offline alternative
 
-\- \*\*Frontend:\*\* React + Vite + Tailwind
+- **Frontend:** React + Vite + Tailwind
 
-\- \*\*Training:\*\* QLoRA 4-bit NF4 on Qwen2-VL-2B, 0.42% trainable parameters, Kaggle T4 x2
+- **Training:** QLoRA 4-bit NF4 on Qwen2-VL-2B, 0.42% trainable parameters, Kaggle T4 x2
 
-\- \*\*Datasets:\*\* BigEarthNet.txt for adaptation, RSVQA-LR-2k for evaluation
-
-
-
-\## Documentation
+- **Datasets:** BigEarthNet.txt for adaptation, RSVQA-LR-2k for evaluation
 
 
 
-\- `docs/ADAPTATION.md` - full adaptation and evaluation report
-
-\- `docs/ARCHITECTURE.md` - system design
-
-\- `docs/API\_CONTRACT.md` - endpoint reference
-
-\- `docs/DATASET.md` - dataset details
-
-\- `docs/DEMO\_SCRIPT.md` - demo walkthrough
-
-\- `docs/PROBLEM\_STATEMENT.md` - SIH problem statement mapping
+## Documentation
 
 
 
-\## Quick Start
+- `docs/ADAPTATION.md` - full adaptation and evaluation report
+
+- `docs/ARCHITECTURE.md` - system design
+
+- `docs/API_CONTRACT.md` - endpoint reference
+
+- `docs/DATASET.md` - dataset details
+
+- `docs/DEMO_SCRIPT.md` - demo walkthrough
+
+- `docs/PROBLEM_STATEMENT.md` - SIH problem statement mapping
+
+
+
+## Quick Start
 
 
 
@@ -164,7 +164,7 @@ npm run dev
 
 
 
-\## License
+## License
 
 
 
