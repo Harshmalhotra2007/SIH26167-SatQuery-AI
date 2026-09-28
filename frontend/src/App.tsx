@@ -4,6 +4,7 @@ import ImageUpload from './components/ImageUpload'
 import ChatPanel from './components/ChatPanel'
 import ChangeDetection from './components/ChangeDetection'
 import CrossModalUpload from './components/CrossModalUpload'
+import ImageViewer from './components/ImageViewer'
 import ExecutionTracePanel, { TraceData } from './components/ExecutionTracePanel'
 
 type Tab = 'analyze' | 'compare' | 'history'
@@ -48,7 +49,7 @@ export default function App() {
       if (!res.ok) throw new Error('Cross-modal request failed')
       const data = await res.json()
       setImageId(optId)
-      setImageUrl(`/static/img_${optId}.jpg`)
+      setImageUrl('/static/img_' + optId + '.jpg')
       setLastAnswer(data.answer)
       setConfidence(data.confidence)
       if (data.execution_trace) setTraceData(data.execution_trace)
@@ -60,40 +61,29 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
+    <div className="min-h-screen bg-canvas-900 text-stone-100 font-ui flex flex-col">
       <TopNav activeTab={tab} onTabChange={setTab} />
 
       <main className="flex-1 px-4 py-6 max-w-7xl mx-auto w-full">
         {tab === 'analyze' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-200px)] min-h-[600px]">
-            {/* Left Panel - Image Viewer (60%) */}
-            <section className="lg:col-span-7 lg:col-start-1 space-y-6 overflow-y-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <section className="lg:col-span-7 space-y-6">
               <ImageUpload onUploaded={handleUploaded} currentMeta={imageMeta} />
-
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 min-h-[360px] flex flex-col items-center justify-center">
-                {imageUrl ? (
-                  <div className="w-full space-y-3">
-                    <div className="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-2">
-                      <span className="font-mono text-emerald-400">✓ Active Remote Sensing Scene</span>
-                      <span>{imageMeta ? `${imageMeta.width}x${imageMeta.height} px` : 'GeoTIFF / Multispectral'}</span>
-                    </div>
-                    <img
-                      src={imageUrl}
-                      alt="Loaded imagery"
-                      className="max-h-[400px] w-full rounded-lg object-contain border border-slate-800 bg-slate-950"
-                    />
-                  </div>
-                ) : (
-                  <div className="text-center space-y-2 text-slate-500">
-                    <div className="text-3xl">🛰️</div>
-                    <p className="text-sm font-medium text-slate-300">Upload an image to begin</p>
-                    <p className="text-xs text-slate-500">Upload a GeoTIFF, PNG, or JPEG satellite image to begin.</p>
-                  </div>
-                )}
-              </div>
+              {imageUrl ? (
+                <ImageViewer src={imageUrl} alt="Loaded satellite imagery" />
+              ) : (
+                <div className="bg-canvas-800 border border-canvas-700 rounded-card p-12 flex flex-col items-center justify-center text-center min-h-[360px]">
+                  <svg className="w-12 h-12 text-stone-500 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <circle cx="9" cy="9" r="2" />
+                    <path d="M21 15l-5-5L5 21" />
+                  </svg>
+                  <p className="text-sm font-medium text-stone-200">Upload an image to begin</p>
+                  <p className="text-xs text-stone-500 mt-1">GeoTIFF, PNG, or JPEG satellite imagery</p>
+                </div>
+              )}
             </section>
 
-            {/* Right Panel - Chat & Execution Trace (40%) */}
             <section className="lg:col-span-5 space-y-6">
               <ChatPanel imageId={imageId} disabled={!imageId} />
               <ExecutionTracePanel
@@ -107,49 +97,15 @@ export default function App() {
         )}
 
         {tab === 'compare' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-200px)] min-h-[600px]">
-            {/* Left Panel - Cross-Modal Upload (60%) */}
-            <section className="lg:col-span-7 lg:col-start-1 space-y-6 overflow-y-auto">
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-5 shadow-xl backdrop-blur-md">
-                <div className="flex items-center justify-between mb-2">
-                  <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
-                    <span className="w-3 h-3 rounded-full bg-amber-400 animate-pulse"></span>
-                    Cross-Modal Reasoning (Optical + SAR)
-                  </h2>
-                  <span className="text-xs px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 font-mono">
-                    Sentinel-1 / Sentinel-2 / GeoTIFF
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400 mb-4">
-                  Upload co-registered Optical (Sentinel-2 / Cartosat) and SAR (Sentinel-1 / RISAT) image pairs in GeoTIFF (.tif) or standard formats.
-                </p>
-                <CrossModalUpload onCrossModalSubmitted={handleCrossModalSubmit} loading={loadingCrossModal} />
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <section className="lg:col-span-7 space-y-6">
+              <CrossModalUpload onCrossModalSubmitted={handleCrossModalSubmit} loading={loadingCrossModal} />
 
-              <div className="bg-slate-900 border border-slate-800 rounded-lg p-4 min-h-[360px] flex flex-col items-center justify-center">
-                {imageUrl ? (
-                  <div className="w-full space-y-3">
-                    <div className="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-2">
-                      <span className="font-mono text-emerald-400">✓ Active Remote Sensing Scene</span>
-                      <span>{imageMeta ? `${imageMeta.width}x${imageMeta.height} px` : 'GeoTIFF / Multispectral'}</span>
-                    </div>
-                    <img
-                      src={imageUrl}
-                      alt="Loaded imagery"
-                      className="max-h-[400px] w-full rounded-lg object-contain border border-slate-800 bg-slate-950"
-                    />
-                  </div>
-                ) : (
-                  <div className="text-center space-y-2 text-slate-500">
-                    <div className="text-3xl">🛰️</div>
-                    <p className="text-sm font-medium text-slate-300">Upload an image to begin</p>
-                    <p className="text-xs text-slate-500">Upload a GeoTIFF, PNG, or JPEG satellite image to begin.</p>
-                  </div>
-                )}
-              </div>
+              <ChangeDetection />
+
+              {imageUrl && <ImageViewer src={imageUrl} alt="Analysis result" />}
             </section>
 
-            {/* Right Panel - Chat & Execution Trace (40%) */}
             <section className="lg:col-span-5 space-y-6">
               <ChatPanel imageId={imageId} disabled={!imageId} />
               <ExecutionTracePanel
@@ -163,14 +119,14 @@ export default function App() {
         )}
 
         {tab === 'history' && (
-          <div className="bg-slate-900 border border-slate-800 rounded-lg p-8 min-h-[60vh] flex flex-col items-center justify-center">
-            <div className="text-center space-y-4">
-              <div className="text-4xl text-slate-600">📂</div>
-              <h2 className="text-xl font-bold text-slate-300">Your analysis history will appear here</h2>
-              <p className="text-sm text-slate-500 max-w-md">
-                No queries yet. Your past analyses will appear here.
-              </p>
-            </div>
+          <div className="bg-canvas-800 border border-canvas-700 rounded-card p-12 min-h-[60vh] flex flex-col items-center justify-center text-center">
+            <svg className="w-12 h-12 text-stone-500 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+              <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-7l-2-2H5a2 2 0 0 0-2 2z" />
+            </svg>
+            <h2 className="text-lg font-display font-semibold text-stone-200">No analyses yet</h2>
+            <p className="text-sm text-stone-500 mt-2 max-w-md">
+              Your past queries will appear here once you run an analysis.
+            </p>
           </div>
         )}
       </main>
