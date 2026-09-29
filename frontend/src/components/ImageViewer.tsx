@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
+import { TransformWrapper, TransformComponent, useControls } from 'react-zoom-pan-pinch'
 
 type Layer = { id: string; label: string; src: string }
 
@@ -9,99 +10,105 @@ type Props = {
   bbox?: [number, number, number, number]
 }
 
-const MIN_ZOOM = 0.5
-const MAX_ZOOM = 4
-const ZOOM_STEP = 0.25
+type ToolbarProps = {
+  layers?: Layer[]
+  activeLayerId: string
+  setActiveLayerId: (id: string) => void
+  zoomPercent: number
+  setZoomPercent: (z: number) => void
+}
+
+function Toolbar({ layers, activeLayerId, setActiveLayerId, zoomPercent, setZoomPercent }: ToolbarProps) {
+    const { resetTransform, centerView } = useControls()
+
+  const handleZoomIn = () => {
+    const next = Math.min(zoomPercent / 100 + 0.25, 4)
+    centerView(next, 0)
+    setZoomPercent(Math.round(next * 100))
+  }
+
+  const handleZoomOut = () => {
+    const next = Math.max(zoomPercent / 100 - 0.25, 0.5)
+    centerView(next, 0)
+    setZoomPercent(Math.round(next * 100))
+  }
+
+  const handleReset = () => {
+    resetTransform()
+    setZoomPercent(100)
+  }
+
+  return (
+    <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-canvas-700 bg-canvas-900/50">
+      <div className="flex items-center gap-1">
+        {layers && layers.map((layer) => (
+          <button
+            key={layer.id}
+            type="button"
+            onClick={() => setActiveLayerId(layer.id)}
+            className={
+              'px-2.5 py-1 text-xs rounded transition-colors ' +
+              (layer.id === activeLayerId
+                ? 'bg-accent-500 text-canvas-950 font-medium'
+                : 'bg-canvas-700 text-stone-300 hover:bg-canvas-600')
+            }
+          >
+            {layer.label}
+          </button>
+        ))}
+      </div>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={handleZoomOut}
+          disabled={zoomPercent <= 50}
+          className="w-7 h-7 flex items-center justify-center rounded bg-canvas-700 hover:bg-canvas-600 text-stone-300 disabled:opacity-40 transition-colors text-sm"
+          aria-label="Zoom out"
+        >
+          -
+        </button>
+        <span className="text-xs text-stone-400 font-mono w-12 text-center">{zoomPercent}%</span>
+        <button
+          type="button"
+          onClick={handleZoomIn}
+          disabled={zoomPercent >= 400}
+          className="w-7 h-7 flex items-center justify-center rounded bg-canvas-700 hover:bg-canvas-600 text-stone-300 disabled:opacity-40 transition-colors text-sm"
+          aria-label="Zoom in"
+        >
+          +
+        </button>
+        <button
+          type="button"
+          onClick={handleReset}
+          className="px-2 py-1 text-xs rounded bg-canvas-700 hover:bg-canvas-600 text-stone-300 transition-colors ml-1"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default function ImageViewer({ src, alt = 'Satellite imagery', layers, bbox }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const imgRef = useRef<HTMLImageElement>(null)
-  const offsetRef = useRef({ x: 0, y: 0 })
-  const zoomRef = useRef(1)
-  const draggingRef = useRef(false)
-
-  const [zoom, setZoom] = useState(1)
-  const [dragging, setDragging] = useState(false)
   const [cursor, setCursor] = useState<{ x: number; y: number } | null>(null)
   const [brightness, setBrightness] = useState(1)
   const [contrast, setContrast] = useState(1)
   const [sharpen, setSharpen] = useState(false)
+  const [imgLoaded, setImgLoaded] = useState(false)
+  const [imgError, setImgError] = useState(false)
   const [activeLayerId, setActiveLayerId] = useState(layers?.[0]?.id ?? '')
+  const [zoomPercent, setZoomPercent] = useState(100)
 
   const activeSrc = layers && layers.length > 0
     ? (layers.find((l) => l.id === activeLayerId)?.src ?? src)
     : src
 
-  const applyTransform = () => {
-    const img = imgRef.current
-    if (!img) return
-    const o = offsetRef.current
-    img.style.transform =
-      'translate(' + o.x + 'px, ' + o.y + 'px) scale(' + zoomRef.current + ')'
+  const onContainerMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = Math.round(((e.clientX - rect.left) / rect.width) * 100)
+    const y = Math.round(((e.clientY - rect.top) / rect.height) * 100)
+    setCursor({ x, y })
   }
-
-  useEffect(() => {
-    zoomRef.current = zoom
-    if (zoom <= 1) offsetRef.current = { x: 0, y: 0 }
-    applyTransform()
-  }, [zoom])
-
-  useEffect(() => {
-    applyTransform()
-  }, [activeSrc])
-
-  const reset = () => {
-    offsetRef.current = { x: 0, y: 0 }
-    setZoom(1)
-    applyTransform()
-  }
-
-  const zoomIn = () => setZoom((z) => Math.min(z + ZOOM_STEP, MAX_ZOOM))
-
-  const zoomOut = () => setZoom((z) => Math.max(z - ZOOM_STEP, MIN_ZOOM))
-
-  const onMouseDown = (e: React.MouseEvent) => {
-    if (zoomRef.current <= 1) return
-    e.preventDefault()
-
-    const startX = e.clientX
-    const startY = e.clientY
-    const origX = offsetRef.current.x
-    const origY = offsetRef.current.y
-
-    draggingRef.current = true
-    setDragging(true)
-
-    const onMove = (ev: MouseEvent) => {
-      if (!draggingRef.current) return
-      offsetRef.current = {
-        x: origX + (ev.clientX - startX),
-        y: origY + (ev.clientY - startY),
-      }
-      applyTransform()
-    }
-
-    const onUp = () => {
-      draggingRef.current = false
-      setDragging(false)
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-    }
-
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
-  }
-
-  const onContainerMove = (e: React.MouseEvent) => {
-    const rect = containerRef.current?.getBoundingClientRect()
-    if (rect) {
-      const x = Math.round(((e.clientX - rect.left) / rect.width) * 100)
-      const y = Math.round(((e.clientY - rect.top) / rect.height) * 100)
-      setCursor({ x, y })
-    }
-  }
-
-  const onContainerLeave = () => setCursor(null)
 
   const filterParts = ['brightness(' + brightness + ')', 'contrast(' + contrast + ')']
   if (sharpen) filterParts.push('url(#sharpen-filter)')
@@ -112,106 +119,99 @@ export default function ImageViewer({ src, alt = 'Satellite imagery', layers, bb
       <svg width="0" height="0" style={{ position: 'absolute', pointerEvents: 'none' }} aria-hidden="true">
         <defs>
           <filter id="sharpen-filter">
-            <feConvolveMatrix
-              order="3"
-              preserveAlpha="true"
-              kernelMatrix="0 -1 0 -1 5 -1 0 -1 0"
-            />
+            <feConvolveMatrix order="3" preserveAlpha="true" kernelMatrix="0 -1 0 -1 5 -1 0 -1 0" />
           </filter>
         </defs>
       </svg>
 
-      <div className="flex items-center justify-between gap-3 px-3 py-2 border-b border-canvas-700 bg-canvas-900/50">
-        <div className="flex items-center gap-1">
-          {layers && layers.map((layer) => (
-            <button
-              key={layer.id}
-              type="button"
-              onClick={() => setActiveLayerId(layer.id)}
-              className={
-                'px-2.5 py-1 text-xs rounded transition-colors ' +
-                (layer.id === activeLayerId
-                  ? 'bg-accent-500 text-canvas-950 font-medium'
-                  : 'bg-canvas-700 text-stone-300 hover:bg-canvas-600')
-              }
-            >
-              {layer.label}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={zoomOut}
-            disabled={zoom <= MIN_ZOOM}
-            className="w-7 h-7 flex items-center justify-center rounded bg-canvas-700 hover:bg-canvas-600 text-stone-300 disabled:opacity-40 transition-colors text-sm"
-            aria-label="Zoom out"
-          >
-            -
-          </button>
-          <span className="text-xs text-stone-400 font-mono w-12 text-center">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            type="button"
-            onClick={zoomIn}
-            disabled={zoom >= MAX_ZOOM}
-            className="w-7 h-7 flex items-center justify-center rounded bg-canvas-700 hover:bg-canvas-600 text-stone-300 disabled:opacity-40 transition-colors text-sm"
-            aria-label="Zoom in"
-          >
-            +
-          </button>
-          <button
-            type="button"
-            onClick={reset}
-            className="px-2 py-1 text-xs rounded bg-canvas-700 hover:bg-canvas-600 text-stone-300 transition-colors ml-1"
-          >
-            Reset
-          </button>
-        </div>
-      </div>
-
-      <div
-        ref={containerRef}
-        onMouseDown={onMouseDown}
-        onMouseMove={onContainerMove}
-        onMouseLeave={onContainerLeave}
-        className={
-          'relative bg-canvas-950 overflow-hidden select-none ' +
-          (zoom > 1 ? (dragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-crosshair')
-        }
-        style={{ minHeight: '480px', maxHeight: '600px' }}
+      <TransformWrapper
+        initialScale={1}
+        minScale={0.5}
+        maxScale={4}
+        wheel={{ disabled: true }}
+        doubleClick={{ disabled: true }}
+        panning={{ velocityDisabled: true, allowLeftClickPan: true }}
+        limitToBounds={false}
+        centerOnInit={true}
+        centerZoomedOut={false}
+        alignmentAnimation={{ disabled: true }}
+        zoomAnimation={{ disabled: true }}
+        onZoom={(ref) => setZoomPercent(Math.round(ref.state.scale * 100))}
+        onZoomStart={(ref) => setZoomPercent(Math.round(ref.state.scale * 100))}
+        onPanningStop={(ref) => setZoomPercent(Math.round(ref.state.scale * 100))}
       >
-        <img
-          ref={imgRef}
-          src={activeSrc}
-          alt={alt}
-          draggable={false}
-          className="w-full h-full object-contain pointer-events-none"
-          style={{
-            transformOrigin: 'center center',
-            filter: filterStyle,
-          }}
+          <Toolbar
+          layers={layers}
+          activeLayerId={activeLayerId}
+          setActiveLayerId={setActiveLayerId}
+          zoomPercent={zoomPercent}
+          setZoomPercent={setZoomPercent}
         />
+        <div
+          onMouseMove={onContainerMove}
+          onMouseLeave={() => setCursor(null)}
+          className="relative bg-canvas-950 overflow-hidden select-none"
+          style={{ minHeight: '480px', maxHeight: '600px' }}
+        >
+          <TransformComponent
+            wrapperStyle={{ width: '100%', height: '100%', minHeight: '480px', maxHeight: '600px' }}
+            contentStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <div className="relative" style={{ maxWidth: '100%', maxHeight: '100%' }}>
+              <img
+                src={activeSrc}
+                alt={alt}
+                draggable={false}
+                onLoad={() => { setImgLoaded(true); setImgError(false) }}
+                onError={() => setImgError(true)}
+                className="block max-w-full max-h-full object-contain"
+                style={{ filter: filterStyle, maxHeight: '600px' }}
+              />
 
-        {bbox && (
-          <div
-            className="absolute border-2 border-accent-400 bg-accent-400/15 pointer-events-none"
-            style={{
-              left: (bbox[0] * 100) + '%',
-              top: (bbox[1] * 100) + '%',
-              width: ((bbox[2] - bbox[0]) * 100) + '%',
-              height: ((bbox[3] - bbox[1]) * 100) + '%',
-            }}
-          />
-        )}
+              {bbox && imgLoaded && (
+                <div
+                  className="absolute border-2 border-accent-400 bg-accent-400/15 pointer-events-none"
+                  style={{
+                    left: (bbox[0] * 100) + '%',
+                    top: (bbox[1] * 100) + '%',
+                    width: ((bbox[2] - bbox[0]) * 100) + '%',
+                    height: ((bbox[3] - bbox[1]) * 100) + '%',
+                  }}
+                />
+              )}
+            </div>
+          </TransformComponent>
 
-        {cursor && (
-          <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-canvas-900/85 text-stone-300 text-xs font-mono pointer-events-none">
-            x: {cursor.x}  y: {cursor.y}
-          </div>
-        )}
-      </div>
+          {!imgLoaded && !imgError && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-8 h-8 border-2 border-canvas-600 border-t-accent-500 rounded-full animate-spin"></div>
+                <span className="text-xs text-stone-400">Loading image...</span>
+              </div>
+            </div>
+          )}
+
+          {imgError && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="text-center">
+                <svg className="w-10 h-10 text-stone-500 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <p className="text-sm text-stone-300 mt-2">Could not load image</p>
+                <p className="text-xs text-stone-500 mt-1">The image URL may have expired</p>
+              </div>
+            </div>
+          )}
+
+          {cursor && (
+            <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-canvas-900/85 text-stone-300 text-xs font-mono pointer-events-none">
+              x: {cursor.x}  y: {cursor.y}
+            </div>
+          )}
+        </div>
+      </TransformWrapper>
 
       <div className="grid grid-cols-2 gap-3 px-3 py-2.5 border-t border-canvas-700 bg-canvas-900/50">
         <label className="flex items-center gap-2 text-xs text-stone-400">
