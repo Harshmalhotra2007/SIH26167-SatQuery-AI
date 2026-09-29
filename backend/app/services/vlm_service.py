@@ -12,8 +12,7 @@ except Exception:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL = "gemini-3.8-flash"
-
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
 
 def _mime_for(path: Path) -> str:
     ext = path.suffix.lower()
@@ -64,7 +63,7 @@ class VLMService:
         """
         last_error: Optional[Exception] = None
 
-        for attempt in range(3):
+        for attempt in range(5):
             try:
                 resp = self._client.models.generate_content(
                     model=self._model_name,
@@ -83,7 +82,7 @@ class VLMService:
                         "%s: transient error on attempt %d/3 — %s",
                         task_label, attempt + 1, msg[:100],
                     )
-                    await asyncio.sleep(2 + attempt)
+                    await asyncio.sleep(2 + attempt * 2 + random.uniform(0, 1))
                     continue
                 # Non-retryable — log and stop
                 logger.warning("%s: non-retryable error — %s", task_label, msg[:250])
