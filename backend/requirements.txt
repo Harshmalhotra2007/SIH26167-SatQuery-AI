@@ -11,7 +11,7 @@ numpy==1.26.4
 tifffile==2024.9.20
 
 # Gemini & Multimodal VLM
-google-generativeai==0.8.3
+google-genai>=0.6.0
 
 # Remote Sensing Adaptation & Benchmark Evaluation
 huggingface-hub==0.25.1
