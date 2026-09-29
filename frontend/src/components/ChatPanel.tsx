@@ -119,7 +119,7 @@ useEffect(() => {
   }
 
   return (
-    <div className="bg-canvas-800 border border-canvas-700 rounded-card flex flex-col h-[60vh] md:h-[70vh] min-h-[440px] max-h-[720px] overflow-hidden">
+    <div className="bg-canvas-800 border border-canvas-700 rounded-card flex flex-col h-[70vh] sm:h-[60vh] md:h-[70vh] min-h-[400px] sm:min-h-[440px] max-h-[720px] overflow-hidden">
       <div className="px-5 py-4 border-b border-canvas-700 flex items-center justify-between bg-canvas-900/60">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-accent-500/15 border border-accent-500/30 flex items-center justify-center text-accent-400 font-bold text-xs">

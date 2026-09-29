@@ -150,11 +150,11 @@ export default function ImageViewer({ src, alt = 'Satellite imagery', layers, bb
         <div
           onMouseMove={onContainerMove}
           onMouseLeave={() => setCursor(null)}
-          className="relative bg-canvas-950 overflow-hidden select-none"
-          style={{ minHeight: '480px', maxHeight: '600px' }}
+          className="relative bg-canvas-950 overflow-hidden select-none min-h-[280px] max-h-[400px] sm:min-h-[480px] sm:max-h-[600px]"
+     
         >
           <TransformComponent
-            wrapperStyle={{ width: '100%', height: '100%', minHeight: '480px', maxHeight: '600px' }}
+            wrapperStyle={{ width: '100%', height: '100%' }}
             contentStyle={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <div className="relative" style={{ maxWidth: '100%', maxHeight: '100%' }}>
@@ -213,7 +213,7 @@ export default function ImageViewer({ src, alt = 'Satellite imagery', layers, bb
         </div>
       </TransformWrapper>
 
-      <div className="grid grid-cols-2 gap-3 px-3 py-2.5 border-t border-canvas-700 bg-canvas-900/50">
+            <div className="flex flex-col gap-3 px-3 py-2.5 border-t border-canvas-700 bg-canvas-900/50">
         <label className="flex items-center gap-2 text-xs text-stone-400">
           <span className="w-16 flex-shrink-0">Brightness</span>
           <input
